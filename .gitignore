@@ -154,3 +154,6 @@ core/include/defaultPointTextureData.h
 *.creator.user
 qt/build-*
 *.pro.user*
+
+# shader generated headers
+core/include/shaders
