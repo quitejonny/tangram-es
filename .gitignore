@@ -149,3 +149,6 @@ core/include/defaultPointTextureData.h
 # CLion build directories
 /cmake-build-debug/
 /cmake-build-release/
+
+# Qt-Creator
+*.creator.user
