@@ -156,4 +156,4 @@ qt/build-*
 *.pro.user*
 
 # shader generated headers
-core/include/shaders
+core/include/shaders/*.h
