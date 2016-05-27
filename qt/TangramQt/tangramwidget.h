@@ -26,7 +26,6 @@ public slots:
 
 protected:
     bool event(QEvent *e) Q_DECL_OVERRIDE;
-    void timerEvent(QTimerEvent *ev);
 
     void initializeGL() Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
@@ -36,6 +35,7 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
 private:
+    bool renderRequestEvent();
     bool mouseWheelEvent(QWheelEvent *ev);
     bool gestureEvent(QGestureEvent *ev);
     void panTriggered(QPanGesture *gesture);
