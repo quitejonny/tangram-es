@@ -18,6 +18,7 @@ PFNGLGENVERTEXARRAYSPROC glGenVertexArraysOESEXT = 0;
 TangramWidget::TangramWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , m_sceneFile("scene.yaml")
+    , m_lastMousePos(-1, -1)
 {
     // Initialize cURL
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -74,6 +75,19 @@ void TangramWidget::resizeGL(int w, int h)
                     h);
 }
 
+void TangramWidget::mousePressEvent(QMouseEvent *event)
+{
+    Tangram::handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
+    m_lastMousePos = event->pos();
+}
+
+void TangramWidget::mouseMoveEvent(QMouseEvent *event)
+{
+    Tangram::handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
+                              event->x(), event->y());
+    m_lastMousePos = event->pos();
+}
+
 void TangramWidget::grabGestures(const QList<Qt::GestureType> &gestures)
 {
     foreach (Qt::GestureType gesture, gestures)
@@ -82,11 +96,15 @@ void TangramWidget::grabGestures(const QList<Qt::GestureType> &gestures)
 
 bool TangramWidget::event(QEvent *e)
 {
-    if (e->type() == QEvent::Gesture) {
-        qDebug() << Q_FUNC_INFO;
+    if (e->type() == QEvent::Gesture)
         return gestureEvent(static_cast<QGestureEvent*>(e));
-    }
+    else if (e->type() == QEvent::Wheel)
+        return mouseWheelEvent(static_cast<QWheelEvent*>(e));
     return QWidget::event(e);
+}
+
+bool TangramWidget::mouseWheelEvent(QWheelEvent *ev)
+{
 }
 
 bool TangramWidget::gestureEvent(QGestureEvent *ev)

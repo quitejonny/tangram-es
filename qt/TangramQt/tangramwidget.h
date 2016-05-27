@@ -32,7 +32,11 @@ protected:
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int width, int height) Q_DECL_OVERRIDE;
 
+    void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+
 private:
+    bool mouseWheelEvent(QWheelEvent *ev);
     bool gestureEvent(QGestureEvent *ev);
     void panTriggered(QPanGesture *gesture);
     void pinchTriggered(QPinchGesture *gesture);
@@ -49,6 +53,8 @@ private:
     qreal currentStepScaleFactor;
 
     QDateTime m_lastRendering;
+
+    QPoint m_lastMousePos;
 };
 
 #endif // TANGELGLWIDGET_H
