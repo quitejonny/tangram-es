@@ -21,6 +21,9 @@ TangramWidget::TangramWidget(QWidget *parent)
 {
     // Initialize cURL
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
+    grabGesture(Qt::PanGesture);
+
     startTimer(100);
 }
 
@@ -71,23 +74,83 @@ void TangramWidget::resizeGL(int w, int h)
                     h);
 }
 
-void TangramWidget::mousePressEvent(QMouseEvent *event)
+void TangramWidget::grabGestures(const QList<Qt::GestureType> &gestures)
 {
-    m_startPoint = event->pos();
-    m_lastPoint = event->pos();
+    foreach (Qt::GestureType gesture, gestures)
+        grabGesture(gesture);
 }
 
-void TangramWidget::mouseMoveEvent(QMouseEvent *event)
+bool TangramWidget::event(QEvent *e)
 {
-    if (m_startPoint.x() >= 0 && m_startPoint.y() >= 0) {
-
+    if (e->type() == QEvent::Gesture) {
+        qDebug() << Q_FUNC_INFO;
+        return gestureEvent(static_cast<QGestureEvent*>(e));
     }
+    return QWidget::event(e);
 }
 
-void TangramWidget::mouseReleaseEvent(QMouseEvent *event)
+bool TangramWidget::gestureEvent(QGestureEvent *ev)
 {
-    m_startPoint = QPoint(-1, -1);
-    m_lastPoint = QPoint(-1, -1);
+    if (QGesture *swipe = ev->gesture(Qt::SwipeGesture))
+        swipeTriggered(static_cast<QSwipeGesture*>(swipe));
+    else if (QGesture *pan = ev->gesture(Qt::PanGesture))
+        panTriggered(static_cast<QPanGesture *>(pan));
+    if (QGesture *pinch = ev->gesture(Qt::PinchGesture))
+        pinchTriggered(static_cast<QPinchGesture *>(pinch));
+    return true;
+}
+
+void TangramWidget::panTriggered(QPanGesture *gesture)
+{
+#ifndef QT_NO_CURSOR
+    switch (gesture->state()) {
+        case Qt::GestureStarted:
+        case Qt::GestureUpdated:
+            setCursor(Qt::SizeAllCursor);
+            break;
+        default:
+            setCursor(Qt::ArrowCursor);
+    }
+#endif
+    QPointF delta = gesture->delta();
+    qDebug() << "panTriggered():" << gesture;
+    horizontalOffset += delta.x();
+    verticalOffset += delta.y();
+    update();
+}
+
+void TangramWidget::pinchTriggered(QPinchGesture *gesture)
+{
+    QPinchGesture::ChangeFlags changeFlags = gesture->changeFlags();
+    if (changeFlags & QPinchGesture::RotationAngleChanged) {
+        qreal rotationDelta = gesture->rotationAngle() - gesture->lastRotationAngle();
+        rotationAngle += rotationDelta;
+        qDebug() << "pinchTriggered(): rotate by" <<
+            rotationDelta << "->" << rotationAngle;
+    }
+    if (changeFlags & QPinchGesture::ScaleFactorChanged) {
+        currentStepScaleFactor = gesture->totalScaleFactor();
+        qDebug() << "pinchTriggered(): zoom by" <<
+            gesture->scaleFactor() << "->" << currentStepScaleFactor;
+    }
+    if (gesture->state() == Qt::GestureFinished) {
+        scaleFactor *= currentStepScaleFactor;
+        currentStepScaleFactor = 1;
+    }
+    update();
+}
+
+void TangramWidget::swipeTriggered(QSwipeGesture *gesture)
+{
+    if (gesture->state() == Qt::GestureFinished) {
+        if (gesture->horizontalDirection() == QSwipeGesture::Left
+            || gesture->verticalDirection() == QSwipeGesture::Up) {
+            qDebug() << "swipeTriggered(): swipe to previous";
+        } else {
+            qDebug() << "swipeTriggered(): swipe to next";
+        }
+        update();
+    }
 }
 
 class UrlRunner : public QRunnable
