@@ -6,6 +6,7 @@
 #include <data/clientGeoJsonSource.h>
 #include <QMouseEvent>
 #include <QDateTime>
+#include <QGestureEvent>
 #include "platform.h"
 
 class TangramWidget : public QOpenGLWidget
@@ -18,26 +19,35 @@ public:
     static void startUrlRequest(const std::string &url, UrlCallback callback);
     static void cancelUrlRequest(const std::string &url);
 
+    void grabGestures(const QList<Qt::GestureType> &gestures);
+
 public slots:
     void handleCallback(UrlCallback callback);
 
 protected:
+    bool event(QEvent *e) Q_DECL_OVERRIDE;
     void timerEvent(QTimerEvent *ev);
 
     void initializeGL() Q_DECL_OVERRIDE;
     void paintGL() Q_DECL_OVERRIDE;
     void resizeGL(int width, int height) Q_DECL_OVERRIDE;
 
-    void mousePressEvent(QMouseEvent *event);
-    void mouseMoveEvent(QMouseEvent *event);
-    void mouseReleaseEvent(QMouseEvent *event);
-
 private:
+    bool gestureEvent(QGestureEvent *ev);
+    void panTriggered(QPanGesture *gesture);
+    void pinchTriggered(QPinchGesture *gesture);
+    void swipeTriggered(QSwipeGesture *gesture);
+
     QFile m_sceneFile;
     std::shared_ptr<Tangram::ClientGeoJsonSource> data_source;
 
-    QPoint m_startPoint;
-    QPoint m_lastPoint;
+    int position;
+    qreal horizontalOffset;
+    qreal verticalOffset;
+    qreal rotationAngle;
+    qreal scaleFactor;
+    qreal currentStepScaleFactor;
+
     QDateTime m_lastRendering;
 };
 
