@@ -152,3 +152,5 @@ core/include/defaultPointTextureData.h
 
 # Qt-Creator
 *.creator.user
+qt/build-*
+*.pro.user*
