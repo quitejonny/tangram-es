@@ -98,7 +98,6 @@ bool TangramWidget::event(QEvent *e)
 
 bool TangramWidget::renderRequestEvent()
 {
-    qDebug() << Q_FUNC_INFO;
     processNetworkQueue();
     update();
     return true;
@@ -106,6 +105,15 @@ bool TangramWidget::renderRequestEvent()
 
 bool TangramWidget::mouseWheelEvent(QWheelEvent *ev)
 {
+    double x = ev->posF().x();
+    double y = ev->posF().y();
+
+    if (ev->modifiers() & Qt::ControlModifier)
+        Tangram::handleShoveGesture(0.05 * ev->angleDelta().y());
+    else if (ev->modifiers() & Qt::AltModifier) {
+        Tangram::handleRotateGesture(x, y, 0.0005 * ev->angleDelta().y());
+    } else
+        Tangram::handlePinchGesture(x, y, 1.0 + 0.0005 * ev->angleDelta().y(), 0.f);
 }
 
 bool TangramWidget::gestureEvent(QGestureEvent *ev)
