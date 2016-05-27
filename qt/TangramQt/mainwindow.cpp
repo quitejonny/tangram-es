@@ -1,5 +1,6 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "platform_qt.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,4 +12,15 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+bool MainWindow::event(QEvent *event)
+{
+    if (event->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {
+        qDebug() << Q_FUNC_INFO;
+
+        QCoreApplication::postEvent(ui->openGLWidget, new QEvent(event->type()));
+        return true;
+    }
+    return QMainWindow::event(event);
 }

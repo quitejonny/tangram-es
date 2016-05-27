@@ -24,20 +24,11 @@ TangramWidget::TangramWidget(QWidget *parent)
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
     grabGesture(Qt::PanGesture);
-
-    startTimer(100);
 }
 
 TangramWidget::~TangramWidget()
 {
     curl_global_cleanup();
-}
-
-void TangramWidget::timerEvent(QTimerEvent *ev)
-{
-    Q_UNUSED(ev);
-    processNetworkQueue();
-    update();
 }
 
 void TangramWidget::initializeGL()
@@ -51,7 +42,7 @@ void TangramWidget::initializeGL()
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     qDebug() << "Version:" << f->glGetString(GL_VERSION);
     f->glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-//    glBindVertexArrayOESEXT = context()->getProcAddress("glBindVertexArray");
+
     Tangram::initialize(m_sceneFile.fileName().toStdString().c_str());
     Tangram::setupGL();
     Tangram::resize(width(),
@@ -100,7 +91,17 @@ bool TangramWidget::event(QEvent *e)
         return gestureEvent(static_cast<QGestureEvent*>(e));
     else if (e->type() == QEvent::Wheel)
         return mouseWheelEvent(static_cast<QWheelEvent*>(e));
+    else if (e->type() == TANGRAM_REQ_RENDER_EVENT_TYPE)
+        return renderRequestEvent();
     return QWidget::event(e);
+}
+
+bool TangramWidget::renderRequestEvent()
+{
+    qDebug() << Q_FUNC_INFO;
+    processNetworkQueue();
+    update();
+    return true;
 }
 
 bool TangramWidget::mouseWheelEvent(QWheelEvent *ev)

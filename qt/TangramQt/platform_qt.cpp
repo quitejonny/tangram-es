@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <sys/resource.h>
 #include <sys/syscall.h>
+#include <QApplication>
+#include <QWindow>
 
 #define NUM_WORKERS 3
 
@@ -24,8 +26,6 @@ static std::string s_resourceRoot;
 
 static UrlWorker s_Workers[NUM_WORKERS];
 static std::list<std::unique_ptr<UrlTask>> s_urlTaskQueue;
-
-static TangramWidget *widget;
 
 void logMsg(const char* fmt, ...) {
     va_list args;
@@ -49,7 +49,10 @@ void processNetworkQueue() {
 }
 
 void requestRender() {
-    // TODO
+    // TODO: How could we post to a specific view instead?
+    //fprintf(stderr, "requestRender()\n");
+    foreach(QWindow* w, QApplication::allWindows())
+        QCoreApplication::postEvent(w, new QEvent(TANGRAM_REQ_RENDER_EVENT_TYPE));
 }
 
 void setContinuousRendering(bool _isContinuous) {
@@ -185,9 +188,4 @@ void initGLExtensions() {
 //    glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYPROC)glfwGetProcAddress("glBindVertexArray");
 //    glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSPROC)glfwGetProcAddress("glDeleteVertexArrays");
 //    glGenVertexArraysOESEXT = (PFNGLGENVERTEXARRAYSPROC)glfwGetProcAddress("glGenVertexArrays");
-}
-
-void registerWidget(TangramWidget *w)
-{
-    widget = w;
 }

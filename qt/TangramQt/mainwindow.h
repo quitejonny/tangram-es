@@ -15,6 +15,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+protected:
+    bool event(QEvent *event);
+
 private:
     Ui::MainWindow *ui;
 };
