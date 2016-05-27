@@ -138,7 +138,6 @@ std::string systemFontFallbackPath(int _importance, int _weightHint) {
 }
 
 bool startUrlRequest(const std::string& _url, UrlCallback _callback) {
-    fprintf(stderr, "URL: %s\n", _url.c_str());
     std::unique_ptr<UrlTask> task(new UrlTask(_url, _callback));
     for(auto& worker : s_Workers) {
         if(worker.isAvailable()) {
