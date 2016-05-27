@@ -160,3 +160,5 @@ core/include/shaders/*.h
 
 # Qt user version of project files
 *.creator.user
+qt/build-*
+*.pro.user*
