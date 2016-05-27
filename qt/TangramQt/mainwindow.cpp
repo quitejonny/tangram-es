@@ -17,8 +17,6 @@ MainWindow::~MainWindow()
 bool MainWindow::event(QEvent *event)
 {
     if (event->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {
-        qDebug() << Q_FUNC_INFO;
-
         QCoreApplication::postEvent(ui->openGLWidget, new QEvent(event->type()));
         return true;
     }
