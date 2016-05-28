@@ -192,7 +192,6 @@ cd build/rpi/bin
 
 You can also move the map with `w`, `a`, `s`, and `z`, zoom in and out with `-` and `=`, and quit with `q`.
 
-
 ### Qt (currently only for Linux) ###
 To build for Qt you nned to build for Linux first. Building for Linux will generate the needed .a-files that the Qt project links agains (Yes, this is really ugly, but will be fixed later on in the project).
 
