@@ -19,6 +19,7 @@ TangramWidget::TangramWidget(QWidget *parent)
     : QOpenGLWidget(parent)
     , m_sceneFile("scene.yaml")
     , m_lastMousePos(-1, -1)
+    , m_panning(false)
 {
     // Initialize cURL
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -70,13 +71,34 @@ void TangramWidget::mousePressEvent(QMouseEvent *event)
 {
     Tangram::handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
     m_lastMousePos = event->pos();
+    m_lastMouseEvent = event->timestamp();
 }
 
 void TangramWidget::mouseMoveEvent(QMouseEvent *event)
 {
     Tangram::handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
                               event->x(), event->y());
+
+    if (m_panning && (event->timestamp() - m_lastMouseEvent) != 0) {
+        m_lastMouseSpeed.setX((event->x() - m_lastMousePos.x()) / ((float)(event->timestamp() - m_lastMouseEvent) / 1000.f));
+        m_lastMouseSpeed.setY((event->y() - m_lastMousePos.y()) / ((float)(event->timestamp() - m_lastMouseEvent) / 1000.f));
+    }
+
     m_lastMousePos = event->pos();
+    m_lastMouseEvent = event->timestamp();
+    m_panning = true;
+}
+
+void TangramWidget::mouseReleaseEvent(QMouseEvent *event)
+{
+    /*if (m_panning) {
+        Tangram::handleFlingGesture(event->x(), event->y(),
+                                    qBound(-2000.0, m_lastMouseSpeed.x(), 2000.0),
+                                    qBound(-2000.0, m_lastMouseSpeed.y(), 2000.0));
+        m_panning = false;
+        m_lastMouseSpeed.setX(0.);
+        m_lastMouseSpeed.setY(0.);
+    }*/
 }
 
 void TangramWidget::grabGestures(const QList<Qt::GestureType> &gestures)

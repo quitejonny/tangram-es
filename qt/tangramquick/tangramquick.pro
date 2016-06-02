@@ -1,16 +1,10 @@
-#-------------------------------------------------
-#
-# Project created by QtCreator 2016-05-25T11:29:18
-#
-#-------------------------------------------------
+TEMPLATE = lib
+TARGET = tangramquick
+QT += qml quick
+CONFIG += qt plugin c++14
 
-QT       += core gui
-CONFIG   += c++14
-
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
-TARGET = tangramqt
-TEMPLATE = app
+TARGET = $$qtLibraryTarget($$TARGET)
+uri = com.mapzen.tangram
 
 INCLUDEPATH += ../../core/include
 INCLUDEPATH += ../../core/include/glm
@@ -37,7 +31,6 @@ LIBS += ../../build/linux/lib/libcore.a
 LIBS += -lcurl
 LIBS += ../../build/linux/lib/libglfw3.a
 LIBS += -ldl -lrt -lm -ldl -lpthread -lGLU -lGL
-
 LIBS += ../../build/linux/lib/libduktape.a
 LIBS += ../../build/linux/lib/libcss-color-parser-cpp.a
 LIBS += ../../build/linux/lib/libgeojson-vt-cpp.a
@@ -48,15 +41,34 @@ LIBS += ../../build/linux/lib/libharfbuzz.a
 LIBS += -lz -lpng -lz -lpng -lfreetype
 LIBS += ../../build/linux/lib/libicucommon.a
 
-SOURCES += main.cpp \
-        mainwindow.cpp \
-    tangramwidget.cpp \
-    platform_qt.cpp \
+# Input
+SOURCES += \
+    tangramquick_plugin.cpp \
+    tangramquick.cpp \
     urlWorker.cpp \
+    platform_qt.cpp
 
-HEADERS  += mainwindow.h \
-    tangramwidget.h \
-    platform_qt.h \
+HEADERS += \
+    tangramquick_plugin.h \
+    tangramquick.h \
     urlWorker.h \
+    platform_qt.h
 
-FORMS    += mainwindow.ui
+DISTFILES = qmldir
+
+!equals(_PRO_FILE_PWD_, $$OUT_PWD) {
+    copy_qmldir.target = $$OUT_PWD/qmldir
+    copy_qmldir.depends = $$_PRO_FILE_PWD_/qmldir
+    copy_qmldir.commands = $(COPY_FILE) \"$$replace(copy_qmldir.depends, /, $$QMAKE_DIR_SEP)\" \"$$replace(copy_qmldir.target, /, $$QMAKE_DIR_SEP)\"
+    QMAKE_EXTRA_TARGETS += copy_qmldir
+    PRE_TARGETDEPS += $$copy_qmldir.target
+}
+
+qmldir.files = qmldir
+unix {
+    installPath = $$[QT_INSTALL_QML]/$$replace(uri, \\., /)
+    qmldir.path = $$installPath
+    target.path = $$installPath
+    INSTALLS += target qmldir
+}
+

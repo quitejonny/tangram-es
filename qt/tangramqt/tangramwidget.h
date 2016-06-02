@@ -12,6 +12,7 @@
 class TangramWidget : public QOpenGLWidget
 {
     Q_OBJECT
+
 public:
     TangramWidget(QWidget *parent = Q_NULLPTR);
     virtual ~TangramWidget();
@@ -33,6 +34,7 @@ protected:
 
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
+    void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE;
 
 private:
     bool renderRequestEvent();
@@ -55,6 +57,9 @@ private:
     QDateTime m_lastRendering;
 
     QPoint m_lastMousePos;
+    QPointF m_lastMouseSpeed;
+    ulong m_lastMouseEvent;
+    bool m_panning;
 };
 
 #endif // TANGELGLWIDGET_H
