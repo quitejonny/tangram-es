@@ -106,6 +106,19 @@ float TangramQuick::zoom() const
     return m_zoom;
 }
 
+void TangramQuick::setTilt(const float tilt)
+{
+    if (m_tilt != tilt) {
+        m_tilt = tilt;
+        emit tiltChanged();
+    }
+}
+
+float TangramQuick::tilt() const
+{
+    return m_tilt;
+}
+
 int TangramQuick::moveAnimationDuration() const
 {
     return m_moveAnimationDuration;
@@ -254,6 +267,11 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
             m_zoom = tangramItem->zoom();
             if (m_glInitialized)
                 Tangram::setZoom(m_zoom);
+        }
+        if (m_tilt != tangramItem->tilt()) {
+            m_tilt = tangramItem->tilt();
+            if (m_glInitialized)
+                Tangram::setTilt(m_tilt * (2*M_PI / 360.f));
         }
 
         tangramItem->setGLInitialized(m_glInitialized);

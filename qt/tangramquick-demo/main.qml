@@ -40,6 +40,7 @@ Window {
         anchors.fill: parent;
         sceneConfiguration:  "scene.yaml"
         zoom: 16
+        tilt: 0
         continuousRendering: true
 
         Behavior on heading {
@@ -90,6 +91,8 @@ Window {
         }
         NumberAnimation { target: map; property: "zoom"; to: 14; duration: 1000; easing.type: Easing.InOutBack }
         NumberAnimation { target: map; property: "zoom"; to: 16; duration: 1000; easing.type: Easing.InOutBack }
+        NumberAnimation { target: map; property: "tilt"; to: 45; duration: 1000; easing.type: Easing.InOutBack }
+        NumberAnimation { target: map; property: "tilt"; to: 0; duration: 1000; easing.type: Easing.InOutBack }
 
         running: true
         loops: Animation.Infinite
