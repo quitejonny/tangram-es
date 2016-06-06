@@ -76,8 +76,8 @@ Window {
         id:ani
         PauseAnimation { duration: 2000 }
         ParallelAnimation {
-            NumberAnimation { target: scale; property: "xScale"; to: 0.6; duration: 1000; easing.type: Easing.InOutBack }
-            NumberAnimation { target: scale; property: "yScale"; to: 0.6; duration: 1000; easing.type: Easing.InOutBack }
+            NumberAnimation { target: scale; property: "xScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
+            NumberAnimation { target: scale; property: "yScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
         }
         NumberAnimation { target: rotation; property: "angle"; to: 80; duration: 1000; easing.type: Easing.InOutCubic }
         NumberAnimation { target: rotation; property: "angle"; to: -80; duration: 1000; easing.type: Easing.InOutCubic }
@@ -89,9 +89,9 @@ Window {
             NumberAnimation { target: scale; property: "xScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
             NumberAnimation { target: scale; property: "yScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
         }
-        NumberAnimation { target: map; property: "zoom"; to: 14; duration: 1000; easing.type: Easing.InOutBack }
+        NumberAnimation { target: map; property: "zoom"; to: 14; duration: 2000; easing.type: Easing.InOutBack }
         NumberAnimation { target: map; property: "zoom"; to: 16; duration: 1000; easing.type: Easing.InOutBack }
-        NumberAnimation { target: map; property: "tilt"; to: 45; duration: 1000; easing.type: Easing.InOutBack }
+        NumberAnimation { target: map; property: "tilt"; to: 45; duration: 2000; easing.type: Easing.InOutBack }
         NumberAnimation { target: map; property: "tilt"; to: 0; duration: 1000; easing.type: Easing.InOutBack }
 
         running: true
