@@ -52,7 +52,6 @@ void processNetworkQueue() {
 }
 
 void requestRender() {
-    fprintf(stderr, "request render\n");
     if (s_quickItem)
         QCoreApplication::postEvent(s_quickItem, new QEvent(TANGRAM_REQ_RENDER_EVENT_TYPE));
 }
