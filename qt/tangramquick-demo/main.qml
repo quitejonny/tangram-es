@@ -39,6 +39,7 @@ Window {
         focus: true
         anchors.fill: parent;
         sceneConfiguration:  "scene.yaml"
+        zoom: 16
         continuousRendering: true
 
         Behavior on heading {
@@ -87,6 +88,9 @@ Window {
             NumberAnimation { target: scale; property: "xScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
             NumberAnimation { target: scale; property: "yScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
         }
+        NumberAnimation { target: map; property: "zoom"; to: 14; duration: 1000; easing.type: Easing.InOutBack }
+        NumberAnimation { target: map; property: "zoom"; to: 16; duration: 1000; easing.type: Easing.InOutBack }
+
         running: true
         loops: Animation.Infinite
     }

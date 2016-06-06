@@ -93,6 +93,19 @@ qreal TangramQuick::heading() const
     return m_heading;
 }
 
+void TangramQuick::setZoom(const float zoom)
+{
+    if (m_zoom != zoom) {
+        m_zoom = zoom;
+        emit zoomChanged();
+    }
+}
+
+float TangramQuick::zoom() const
+{
+    return m_zoom;
+}
+
 int TangramQuick::moveAnimationDuration() const
 {
     return m_moveAnimationDuration;
@@ -218,7 +231,6 @@ void TangramQuickRenderer::render()
     Tangram::update((float)m_elapsedTimer.elapsed() / 100.f);
     Tangram::render();
     m_elapsedTimer.restart();
-
 }
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
@@ -237,6 +249,11 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
             m_heading = tangramItem->heading();
             if (m_glInitialized)
                 Tangram::setRotation(m_heading * (2*M_PI / 360.f));
+        }
+        if (m_zoom != tangramItem->zoom()) {
+            m_zoom = tangramItem->zoom();
+            if (m_glInitialized)
+                Tangram::setZoom(m_zoom);
         }
 
         tangramItem->setGLInitialized(m_glInitialized);
