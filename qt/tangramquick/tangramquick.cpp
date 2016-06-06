@@ -3,6 +3,7 @@
 #include <QQuickWindow>
 
 #include <tangram.h>
+#include <gl/renderState.h>
 #include <curl/curl.h>
 #include <cstdlib>
 #include <QOpenGLContext>
@@ -13,13 +14,21 @@
 #include <QRunnable>
 #include <QDebug>
 
+
 PFNGLBINDVERTEXARRAYPROC glBindVertexArrayOESEXT = 0;
 PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArraysOESEXT = 0;
 PFNGLGENVERTEXARRAYSPROC glGenVertexArraysOESEXT = 0;
 
-TangramQuick::TangramQuick(QQuickItem *parent):
-    QQuickFramebufferObject(parent)
+TangramQuick::TangramQuick(QQuickItem *parent)
+    : QQuickFramebufferObject(parent)
+    , m_position(40.70532700869127, -74.00976419448854)
+    , m_moveAnimationDuration(1000)
+    , m_heading(0)
+    , m_lastMousePos(-1, -1)
+    , m_panning(false)
+    , m_glInit(false)
 {
+    setAcceptedMouseButtons(Qt::AllButtons);
     registerItem((QObject*)this);
     setMirrorVertically(true);
 }
@@ -47,6 +56,48 @@ QUrl TangramQuick::sceneConfiguration() const
     return m_sceneUrl;
 }
 
+void TangramQuick::setPosition(const QPointF position)
+{
+    if (m_position != position) {
+        m_position = position;
+        emit positionChanged();
+        update();
+    }
+}
+
+QPointF TangramQuick::position() const
+{
+    return m_position;
+}
+
+void TangramQuick::setMoveAnimationDuration(const int duration)
+{
+    if (m_moveAnimationDuration != duration) {
+        m_moveAnimationDuration = duration;
+        emit moveAnimationDurationChanged();
+        update();
+    }
+}
+
+void TangramQuick::setHeading(const qreal heading)
+{
+    if (m_heading != heading) {
+        m_heading = heading;
+        emit headingChanged();
+        update();
+    }
+}
+
+qreal TangramQuick::heading() const
+{
+    return m_heading;
+}
+
+int TangramQuick::moveAnimationDuration() const
+{
+    return m_moveAnimationDuration;
+}
+
 bool TangramQuick::event(QEvent *e)
 {
     if (e->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {
@@ -57,6 +108,49 @@ bool TangramQuick::event(QEvent *e)
     return QQuickItem::event(e);
 }
 
+void TangramQuick::mousePressEvent(QMouseEvent *event)
+{
+    if (Q_UNLIKELY(!m_glInit))
+        return;
+    Tangram::handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
+    m_lastMousePos = event->pos();
+    m_lastMouseEvent = event->timestamp();
+}
+
+void TangramQuick::mouseMoveEvent(QMouseEvent *event)
+{
+    if (Q_UNLIKELY(!m_glInit))
+        return;
+    Tangram::handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
+                              event->x(), event->y());
+
+    if (m_panning && (event->timestamp() - m_lastMouseEvent) != 0) {
+        m_lastMouseSpeed.setX((event->x() - m_lastMousePos.x()) / ((float)(event->timestamp() - m_lastMouseEvent) / 1000.f));
+        m_lastMouseSpeed.setY((event->y() - m_lastMousePos.y()) / ((float)(event->timestamp() - m_lastMouseEvent) / 1000.f));
+    }
+
+    m_lastMousePos = event->pos();
+    m_lastMouseEvent = event->timestamp();
+    m_panning = true;
+}
+
+void TangramQuick::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (m_panning) {
+        Tangram::handleFlingGesture(event->x(), event->y(),
+                                    qBound(-2000.0, m_lastMouseSpeed.x(), 2000.0),
+                                    qBound(-2000.0, m_lastMouseSpeed.y(), 2000.0));
+        m_panning = false;
+        m_lastMouseSpeed.setX(0.);
+        m_lastMouseSpeed.setY(0.);
+    }
+}
+
+void TangramQuick::setGLInitialized(bool init)
+{
+    m_glInit = init;
+}
+
 TangramQuickRenderer::TangramQuickRenderer()
     : QQuickFramebufferObject::Renderer()
     , m_glInitialized(false)
@@ -64,6 +158,7 @@ TangramQuickRenderer::TangramQuickRenderer()
 {
     // Initialize cURL
     curl_global_init(CURL_GLOBAL_DEFAULT);
+
 }
 
 TangramQuickRenderer::~TangramQuickRenderer()
@@ -73,7 +168,6 @@ TangramQuickRenderer::~TangramQuickRenderer()
 
 void TangramQuickRenderer::initializeGL()
 {
-    qDebug() << Q_FUNC_INFO << ".--------------";
     QOpenGLContext *glctx = QOpenGLContext::currentContext();
     glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYPROC)glctx->getProcAddress("glBindVertexArray");
     glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSPROC)glctx->getProcAddress("glDeleteVertexArrays");
@@ -94,13 +188,11 @@ void TangramQuickRenderer::initializeGL()
 
 void TangramQuickRenderer::render()
 {
-    qDebug() << Q_FUNC_INFO;
-    Tangram::update((float)m_elapsedTimer.elapsed() / 1000.f);
-    Tangram::render();    
+    Tangram::RenderState::configure2();
+    Tangram::update((float)m_elapsedTimer.elapsed() / 100.f);
+    Tangram::render();
     m_elapsedTimer.restart();
 
-    if (m_item)
-        m_item->window()->resetOpenGLState();
 }
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
@@ -108,6 +200,20 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
     TangramQuick *tangramItem = static_cast<TangramQuick*>(item);
     if (tangramItem) {
         m_sceneUrl = tangramItem->sceneConfiguration();
+        m_moveAnimationDuration = tangramItem->moveAnimationDuration();
+
+        if (m_position != tangramItem->position()) {
+            m_position = tangramItem->position();
+            if (m_glInitialized)
+                Tangram::setPosition(m_position.y(), m_position.x());
+        }
+        if (m_heading != tangramItem->heading()) {
+            m_heading = tangramItem->heading();
+            if (m_glInitialized)
+                Tangram::setRotation(m_heading * (2*M_PI / 360.f));
+        }
+
+        tangramItem->setGLInitialized(m_glInitialized);
     }
     m_item = (QQuickItem*)item;
 }
@@ -128,3 +234,4 @@ QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QS
     format.setSamples(4);
     return new QOpenGLFramebufferObject(size, format);
 }
+
