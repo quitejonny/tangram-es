@@ -184,6 +184,8 @@ void TangramQuick::mouseReleaseEvent(QMouseEvent *event)
         m_panning = false;
         m_lastMouseSpeed.setX(0.);
         m_lastMouseSpeed.setY(0.);
+    } else {
+        qDebug() << "Click" << Tangram::pickFeaturesAt(event->x(), event->y()).size();
     }
 }
 
@@ -240,7 +242,7 @@ void TangramQuickRenderer::initializeGL()
 
 void TangramQuickRenderer::render()
 {
-    Tangram::RenderState::configure2();
+    Tangram::RenderState::reConfigure();
     Tangram::update((float)m_elapsedTimer.elapsed() / 100.f);
     Tangram::render();
     m_elapsedTimer.restart();
