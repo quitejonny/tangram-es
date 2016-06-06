@@ -98,6 +98,21 @@ int TangramQuick::moveAnimationDuration() const
     return m_moveAnimationDuration;
 }
 
+void TangramQuick::setContinuousRendering(const bool continuousRendering)
+{
+    qDebug() << Q_FUNC_INFO << continuousRendering;
+    if (m_continuousRendering != continuousRendering) {
+        m_continuousRendering = continuousRendering;
+        emit continuousRenderingChanged();
+    }
+}
+
+bool TangramQuick::continuousRendering() const
+{
+    qDebug() << Q_FUNC_INFO << m_continuousRendering;
+    return m_continuousRendering;
+}
+
 bool TangramQuick::event(QEvent *e)
 {
     if (e->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {

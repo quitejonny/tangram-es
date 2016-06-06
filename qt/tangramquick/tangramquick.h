@@ -17,7 +17,7 @@ class TangramQuick : public QQuickFramebufferObject
     Q_PROPERTY(QPointF position READ position WRITE setPosition NOTIFY positionChanged)
     Q_PROPERTY(int moveAnimationDuration READ moveAnimationDuration WRITE setMoveAnimationDuration NOTIFY moveAnimationDurationChanged)
     Q_PROPERTY(qreal heading READ heading WRITE setHeading NOTIFY headingChanged)
-
+    Q_PROPERTY(bool continuousRendering READ continuousRendering WRITE setContinuousRendering NOTIFY continuousRenderingChanged)
 public:
     TangramQuick(QQuickItem *parent = 0);
     ~TangramQuick();
@@ -28,18 +28,21 @@ public:
     QPointF position() const;
     qreal heading() const;
     int moveAnimationDuration() const;
+    bool continuousRendering() const;
 
 public slots:
     void setSceneConfiguration(const QUrl scene);
     void setPosition(const QPointF position);
     void setHeading(const qreal heading);
     void setMoveAnimationDuration(const int duration);
+    void setContinuousRendering(const bool continuousRendering);
 
 signals:
     void sceneConfigurationChanged();
     void positionChanged();
-    void headingChanged();
     void moveAnimationDurationChanged();
+    void headingChanged();
+    void continuousRenderingChanged();
 
 protected:
     bool event(QEvent *ev);
@@ -50,10 +53,12 @@ protected:
 
 private:
     void setGLInitialized(bool init);
+
     QUrl m_sceneUrl;
     QPointF m_position;
-    qreal m_heading;
     int m_moveAnimationDuration;
+    qreal m_heading;
+    bool m_continuousRendering;
 
     // Mouse move related stuff
     QPoint m_lastMousePos;

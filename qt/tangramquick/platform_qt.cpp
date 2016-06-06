@@ -18,11 +18,6 @@
 
 #define NUM_WORKERS 3
 
-//PFNGLBINDVERTEXARRAYPROC glBindVertexArrayOESEXT = 0;
-//PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArraysOESEXT = 0;
-//PFNGLGENVERTEXARRAYSPROC glGenVertexArraysOESEXT = 0;
-
-static bool s_isContinuousRendering = false;
 static std::string s_resourceRoot;
 
 static UrlWorker s_Workers[NUM_WORKERS];
@@ -56,16 +51,17 @@ void requestRender() {
         QCoreApplication::postEvent(s_quickItem, new QEvent(TANGRAM_REQ_RENDER_EVENT_TYPE));
 }
 
-void setContinuousRendering(bool _isContinuous) {
-
-    s_isContinuousRendering = _isContinuous;
-
+void setContinuousRendering(bool _isContinuous)
+{
+    if (s_quickItem)
+        s_quickItem->setProperty("continuousRendering", _isContinuous);
 }
 
-bool isContinuousRendering() {
-
-    return s_isContinuousRendering;
-
+bool isContinuousRendering()
+{
+    if (s_quickItem)
+        return s_quickItem->property("continuousRendering").toBool();
+    return false;
 }
 
 std::string setResourceRoot(const char* _path) {
@@ -184,14 +180,12 @@ void setCurrentThreadPriority(int priority){
     //logMsg("set niceness: %d -> %d\n", p1, p2);
 }
 
-void initGLExtensions() {
-//    glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYPROC)glfwGetProcAddress("glBindVertexArray");
-//    glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSPROC)glfwGetProcAddress("glDeleteVertexArrays");
-//    glGenVertexArraysOESEXT = (PFNGLGENVERTEXARRAYSPROC)glfwGetProcAddress("glGenVertexArrays");
-}
-
 void registerItem(QObject *quickItem)
 {
     if (!s_quickItem)
         s_quickItem = quickItem;
+}
+
+void initGLExtensions()
+{
 }
