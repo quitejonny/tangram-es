@@ -166,6 +166,17 @@ void TangramQuick::setGLInitialized(bool init)
     m_glInit = init;
 }
 
+void TangramQuick::queueSceneUpdate(const QString path, const QString value)
+{
+    Tangram::queueSceneUpdate(path.toStdString().c_str(),
+                              value.toStdString().c_str());
+}
+
+void TangramQuick::applySceneUpdates()
+{
+    Tangram::applySceneUpdates();
+}
+
 TangramQuickRenderer::TangramQuickRenderer()
     : QQuickFramebufferObject::Renderer()
     , m_glInitialized(false)
@@ -249,4 +260,3 @@ QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QS
     format.setSamples(4);
     return new QOpenGLFramebufferObject(size, format);
 }
-

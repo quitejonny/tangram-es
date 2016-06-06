@@ -37,6 +37,11 @@ public slots:
     void setMoveAnimationDuration(const int duration);
     void setContinuousRendering(const bool continuousRendering);
 
+    // TODO: The documents uses a comma separated list on path. Maybe change
+    // the to QMap<QString, QString>. But how will that work in QML?
+    Q_INVOKABLE void queueSceneUpdate(const QString path, const QString value);
+    Q_INVOKABLE void applySceneUpdates();
+
 signals:
     void sceneConfigurationChanged();
     void positionChanged();

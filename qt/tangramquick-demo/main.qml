@@ -36,10 +36,10 @@ Window {
 
     Tangram {
         id: map
+        focus: true
         anchors.fill: parent;
         sceneConfiguration:  "scene.yaml"
-        position.x: gpx.latitude
-        position.y: gpx.longitude
+        continuousRendering: true
 
         Behavior on heading {
             NumberAnimation { duration: 1000; easing.type: Easing.Linear }
@@ -57,6 +57,16 @@ Window {
             Scale { id: scale; },
             Translate { id: txIn; x: map.width / 2; y: map.height / 2 }
         ]
+
+        Keys.onPressed: {
+            if (event.key === Qt.Key_P) {
+                queueSceneUpdate("cameras", "{ main_camera: { type: perspective } }")
+                applySceneUpdates()
+            } else if (event.key === Qt.Key_I) {
+                queueSceneUpdate("cameras", "{ main_camera: { type: isometric } }")
+                applySceneUpdates()
+            }
+        }
     }
 
     // Just to show something interesting
