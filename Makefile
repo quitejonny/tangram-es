@@ -7,6 +7,7 @@ all: android osx ios
 .PHONY: clean-ios
 .PHONY: clean-rpi
 .PHONY: clean-linux
+.PHONY: clean-qt
 .PHONY: clean-benchmark
 .PHONY: clean-shaders
 .PHONY: clean-tizen-arm
@@ -19,6 +20,7 @@ all: android osx ios
 .PHONY: ios
 .PHONY: rpi
 .PHONY: linux
+.PHONY: qt
 .PHONY: benchmark
 .PHONY: ios-framework
 .PHONY: ios-framework-universal
@@ -30,6 +32,7 @@ all: android osx ios
 .PHONY: cmake-ios-framework-sim
 .PHONY: cmake-rpi
 .PHONY: cmake-linux
+.PHONY: cmake-qt
 .PHONY: install-android
 
 ANDROID_BUILD_DIR = android/tangram/build
@@ -42,6 +45,7 @@ IOS_FRAMEWORK_UNIVERSAL_BUILD_DIR = build/ios-framework-universal
 IOS_SIM_BUILD_DIR = build/ios-sim
 RPI_BUILD_DIR = build/rpi
 LINUX_BUILD_DIR = build/linux
+QT_BUILD_DIR = build/qt
 TESTS_BUILD_DIR = build/tests
 BENCH_BUILD_DIR = build/bench
 TIZEN_ARM_BUILD_DIR = build/tizen-arm
@@ -154,8 +158,14 @@ TIZEN_X86_CMAKE_PARAMS = \
 	-DPLATFORM_TARGET=tizen \
 	-DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE
 
+QT_CMAKE_PARAMS = \
+        ${BUILD_TYPE} \
+        ${CMAKE_OPTIONS} \
+	-DPLATFORM_TARGET=qt \
+	-DCMAKE_EXPORT_COMPILE_COMMANDS=TRUE
+
 clean: clean-android clean-osx clean-ios clean-rpi clean-tests clean-xcode clean-linux clean-shaders \
-	clean-tizen-arm clean-tizen-x86
+	clean-tizen-arm clean-tizen-x86 clean-qt
 
 clean-android:
 	rm -rf android/build
@@ -174,6 +184,9 @@ clean-rpi:
 
 clean-linux:
 	rm -rf ${LINUX_BUILD_DIR}
+
+clean-qt:
+	rm -rf ${QT_BUILD_DIR}
 
 clean-xcode:
 	rm -rf ${OSX_XCODE_BUILD_DIR}
@@ -308,6 +321,15 @@ cmake-tizen-x86:
 	mkdir -p ${TIZEN_X86_BUILD_DIR}
 	cd ${TIZEN_X86_BUILD_DIR} && \
 	cmake ../.. ${TIZEN_X86_CMAKE_PARAMS}
+
+qt: cmake-qt
+	cd ${QT_BUILD_DIR} && \
+	${MAKE}
+
+cmake-qt:
+	mkdir -p ${QT_BUILD_DIR}
+	cd ${QT_BUILD_DIR} &&\
+	cmake ../.. ${QT_CMAKE_PARAMS}
 
 tests: unit-tests
 

@@ -46,13 +46,15 @@ SOURCES += \
     tangramquick_plugin.cpp \
     tangramquick.cpp \
     urlWorker.cpp \
-    platform_qt.cpp
+    platform_qt.cpp \
+    platform_gl.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
     tangramquick.h \
     urlWorker.h \
-    platform_qt.h
+    platform_qt.h \
+    platform_gl.h
 
 DISTFILES = qmldir
 

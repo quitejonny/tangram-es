@@ -8,6 +8,7 @@
 #include <QDateTime>
 #include <QGestureEvent>
 #include "platform.h"
+#include "tangram.h"
 
 class TangramWidget : public QOpenGLWidget
 {
@@ -60,6 +61,8 @@ private:
     QPointF m_lastMouseSpeed;
     ulong m_lastMouseEvent;
     bool m_panning;
+
+    Tangram::Map* m_map = NULL;
 };
 
 #endif // TANGELGLWIDGET_H

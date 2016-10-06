@@ -31,6 +31,7 @@ INCLUDEPATH += ../../external/css-color-parser-cpp
 INCLUDEPATH += ../../core/include/fontstash-es/fontstash/lib/include/freetype2
 INCLUDEPATH += ../../core/include/fontstash-es/fontstash/lib/include/harfbuzz
 INCLUDEPATH += ../../core/data
+INCLUDEPATH += ../../core/common
 
 
 LIBS += ../../build/linux/lib/libcore.a
@@ -52,11 +53,13 @@ SOURCES += main.cpp \
         mainwindow.cpp \
     tangramwidget.cpp \
     platform_qt.cpp \
+    platform_gl.cpp \
     urlWorker.cpp \
 
 HEADERS  += mainwindow.h \
     tangramwidget.h \
     platform_qt.h \
+    platform_gl.h \
     urlWorker.h \
 
 FORMS    += mainwindow.ui

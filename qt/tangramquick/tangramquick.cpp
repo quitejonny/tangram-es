@@ -3,21 +3,17 @@
 #include <QQuickWindow>
 
 #include <tangram.h>
-#include <gl/renderState.h>
+//#include <gl/renderState.h>
 #include <curl/curl.h>
 #include <cstdlib>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include "platform_qt.h"
-#include <GL/gl.h>
-#include <GL/glx.h>
+//#include <GL/gl.h>
+//#include <GL/glx.h>
 #include <QRunnable>
 #include <QDebug>
 
-
-PFNGLBINDVERTEXARRAYPROC glBindVertexArrayOESEXT = 0;
-PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArraysOESEXT = 0;
-PFNGLGENVERTEXARRAYSPROC glGenVertexArraysOESEXT = 0;
 
 TangramQuick::TangramQuick(QQuickItem *parent)
     : QQuickFramebufferObject(parent)
@@ -153,7 +149,7 @@ void TangramQuick::mousePressEvent(QMouseEvent *event)
 {
     if (Q_UNLIKELY(!m_glInit))
         return;
-    Tangram::handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
+    //m_renderer->map()->handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
     m_lastMousePos = event->pos();
     m_lastMouseEvent = event->timestamp();
 }
@@ -162,8 +158,8 @@ void TangramQuick::mouseMoveEvent(QMouseEvent *event)
 {
     if (Q_UNLIKELY(!m_glInit))
         return;
-    Tangram::handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
-                              event->x(), event->y());
+    // m_renderer->map()->handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
+    //                         event->x(), event->y());
 
     if (m_panning && (event->timestamp() - m_lastMouseEvent) != 0) {
         m_lastMouseSpeed.setX((event->x() - m_lastMousePos.x()) / ((float)(event->timestamp() - m_lastMouseEvent) / 1000.f));
@@ -178,14 +174,14 @@ void TangramQuick::mouseMoveEvent(QMouseEvent *event)
 void TangramQuick::mouseReleaseEvent(QMouseEvent *event)
 {
     if (m_panning) {
-        Tangram::handleFlingGesture(event->x(), event->y(),
-                                    qBound(-2000.0, m_lastMouseSpeed.x(), 2000.0),
-                                    qBound(-2000.0, m_lastMouseSpeed.y(), 2000.0));
+        // m_renderer->map()->handleFlingGesture(event->x(), event->y(),
+        //                           qBound(-2000.0, m_lastMouseSpeed.x(), 2000.0),
+        //                           qBound(-2000.0, m_lastMouseSpeed.y(), 2000.0));
         m_panning = false;
         m_lastMouseSpeed.setX(0.);
         m_lastMouseSpeed.setY(0.);
     } else {
-        qDebug() << "Click" << Tangram::pickFeaturesAt(event->x(), event->y()).size();
+        //qDebug() << "Click" << m_renderer->map()->pickFeaturesAt(event->x(), event->y()).size();
     }
 }
 
@@ -196,13 +192,13 @@ void TangramQuick::setGLInitialized(bool init)
 
 void TangramQuick::queueSceneUpdate(const QString path, const QString value)
 {
-    Tangram::queueSceneUpdate(path.toStdString().c_str(),
-                              value.toStdString().c_str());
+    // m_renderer->map()->queueSceneUpdate(path.toStdString().c_str(),
+    //                           value.toStdString().c_str());
 }
 
 void TangramQuick::applySceneUpdates()
 {
-    Tangram::applySceneUpdates();
+    //m_renderer->map()->applySceneUpdates();
 }
 
 TangramQuickRenderer::TangramQuickRenderer()
@@ -222,29 +218,29 @@ TangramQuickRenderer::~TangramQuickRenderer()
 
 void TangramQuickRenderer::initializeGL()
 {
-    QOpenGLContext *glctx = QOpenGLContext::currentContext();
-    glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYPROC)glctx->getProcAddress("glBindVertexArray");
-    glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSPROC)glctx->getProcAddress("glDeleteVertexArrays");
-    glGenVertexArraysOESEXT = (PFNGLGENVERTEXARRAYSPROC)glctx->getProcAddress("glGenVertexArrays");
+    if (!m_map) {
+        setQtGlFunctions(QOpenGLContext::currentContext());
+        m_map = new Tangram::Map();
+        m_map->loadSceneAsync(m_sceneUrl.fileName().toStdString().c_str(), true);
+    }
 
-    qDebug() << Q_FUNC_INFO << glBindVertexArrayOESEXT << glDeleteVertexArraysOESEXT << glGenVertexArraysOESEXT;
+    QOpenGLContext *glctx = QOpenGLContext::currentContext();
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
 
     qDebug() << "Version:" << f->glGetString(GL_VERSION);
     f->glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-    Tangram::initialize(m_sceneUrl.fileName().toStdString().c_str());
-    Tangram::setupGL();
+    m_map->setupGL();
 
     m_dataSource = std::make_shared<Tangram::ClientGeoJsonSource>("touch", "");
-    Tangram::addDataSource(m_dataSource);
+    m_map->addDataSource(m_dataSource);
 }
 
 void TangramQuickRenderer::render()
 {
-    Tangram::RenderState::reConfigure();
-    Tangram::update((float)m_elapsedTimer.elapsed() / 100.f);
-    Tangram::render();
+    //Tangram::RenderState::configure();
+    m_map->update((float)m_elapsedTimer.elapsed() / 100.f);
+    m_map->render();
     m_elapsedTimer.restart();
 }
 
@@ -258,23 +254,23 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
         if (m_position != tangramItem->position()) {
             m_position = tangramItem->position();
             if (m_glInitialized)
-                Tangram::setPosition(m_position.y(), m_position.x());
+                m_map->setPosition(m_position.y(), m_position.x());
         }
-        if (m_heading != tangramItem->heading()) {
-            m_heading = tangramItem->heading();
-            if (m_glInitialized)
-                Tangram::setRotation(m_heading * (2*M_PI / 360.f));
-        }
+        // if (m_heading != tangramItem->heading()) {
+        //     m_heading = tangramItem->heading();
+        //     if (m_glInitialized)
+        //         Tangram::setRotation(m_heading * (2*M_PI / 360.f));
+        // }
         if (m_zoom != tangramItem->zoom()) {
             m_zoom = tangramItem->zoom();
             if (m_glInitialized)
-                Tangram::setZoom(m_zoom);
+                m_map->setZoom(m_zoom);
         }
-        if (m_tilt != tangramItem->tilt()) {
-            m_tilt = tangramItem->tilt();
-            if (m_glInitialized)
-                Tangram::setTilt(m_tilt * (2*M_PI / 360.f));
-        }
+        // if (m_tilt != tangramItem->tilt()) {
+        //     m_tilt = tangramItem->tilt();
+        //     if (m_glInitialized)
+        //         Tangram::setTilt(m_tilt * (2*M_PI / 360.f));
+        // }
 
         tangramItem->setGLInitialized(m_glInitialized);
     }
@@ -288,12 +284,15 @@ QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QS
         initializeGL();
         m_glInitialized = true;
     }
-    Tangram::resize(size.width(),
-                    size.height());
-
+    m_map->resize(size.width(), size.height());
 
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     format.setSamples(4);
     return new QOpenGLFramebufferObject(size, format);
+}
+
+Tangram::Map* TangramQuickRenderer::map()
+{
+    return m_map;
 }

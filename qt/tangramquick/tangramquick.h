@@ -2,10 +2,12 @@
 #define TANGRAM_H
 
 #include <QQuickFramebufferObject>
+#include <QQmlParserStatus>
 #include <QElapsedTimer>
 #include <QQuickItem>
 #include <QMutex>
 #include <data/clientGeoJsonSource.h>
+#include "tangram.h"
 
 class TangramQuickRenderer;
 class TangramQuick : public QQuickFramebufferObject
@@ -81,6 +83,7 @@ private:
     ulong m_lastMouseEvent;
     bool m_panning;
     bool m_glInit;
+    TangramQuickRenderer* m_renderer;
 
     friend class TangramQuickRenderer;
 };
@@ -94,6 +97,7 @@ public:
     void render();
     void synchronize(QQuickFramebufferObject *item);
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size);
+    Tangram::Map* map();
 
 private:
     void initializeGL();
@@ -110,6 +114,7 @@ private:
     float m_zoom;
     float m_tilt;
     int m_moveAnimationDuration;
+    Tangram::Map* m_map = 0;
 };
 
 #endif // TANGRAM_H

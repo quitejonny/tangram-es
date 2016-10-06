@@ -7,6 +7,8 @@
 
 #include "urlWorker.h"
 #include "platform_qt.h"
+#include "platform_gl.h"
+#include <QOpenGLFunctions>
 
 #include <libgen.h>
 #include <unistd.h>
@@ -16,16 +18,20 @@
 #include <QWindow>
 
 #define NUM_WORKERS 3
-
-//PFNGLBINDVERTEXARRAYPROC glBindVertexArrayOESEXT = 0;
-//PFNGLDELETEVERTEXARRAYSPROC glDeleteVertexArraysOESEXT = 0;
-//PFNGLGENVERTEXARRAYSPROC glGenVertexArraysOESEXT = 0;
+QOpenGLExtraFunctions *__qt_gl_funcs;
 
 static bool s_isContinuousRendering = false;
 static std::string s_resourceRoot;
 
 static UrlWorker s_Workers[NUM_WORKERS];
 static std::list<std::unique_ptr<UrlTask>> s_urlTaskQueue;
+
+void setQtGlFunctions(QOpenGLContext *context)
+{
+    __qt_gl_funcs = context->extraFunctions();
+    __qt_gl_funcs->initializeOpenGLFunctions();
+    __qt_gl_funcs->glLinkProgram(0);
+}
 
 void logMsg(const char* fmt, ...) {
     va_list args;
@@ -79,22 +85,11 @@ std::string setResourceRoot(const char* _path) {
 
 }
 
-std::string resolvePath(const char* _path, PathType _type) {
+std::string stringFromFile(const char* _path) {
 
-    switch (_type) {
-    case PathType::absolute:
-    case PathType::internal:
-        return std::string(_path);
-    case PathType::resource:
-        return s_resourceRoot + _path;
-    }
-    return "";
-}
-
-std::string stringFromFile(const char* _path, PathType _type) {
-
-    unsigned int length = 0;
-    unsigned char* bytes = bytesFromFile(_path, _type, &length);
+    size_t length = 0;
+    unsigned char* bytes = bytesFromFile(_path, length);
+    if (!bytes) { return {}; }
 
     std::string out(reinterpret_cast<char*>(bytes), length);
     free(bytes);
@@ -102,25 +97,23 @@ std::string stringFromFile(const char* _path, PathType _type) {
     return out;
 }
 
-unsigned char* bytesFromFile(const char* _path, PathType _type, unsigned int* _size) {
+unsigned char* bytesFromFile(const char* _path, size_t& _size) {
 
-    std::string path = resolvePath(_path, _type);
-
-    std::ifstream resource(path.c_str(), std::ifstream::ate | std::ifstream::binary);
+    std::ifstream resource(_path, std::ifstream::ate | std::ifstream::binary);
 
     if(!resource.is_open()) {
-        logMsg("Failed to read file at path: %s\n", path.c_str());
-        *_size = 0;
+        logMsg("Failed to read file at path: %s\n", _path);
+        _size = 0;
         return nullptr;
     }
 
-    *_size = resource.tellg();
+    _size = resource.tellg();
 
     resource.seekg(std::ifstream::beg);
 
-    char* cdata = (char*) malloc(sizeof(char) * (*_size));
+    char* cdata = (char*) malloc(sizeof(char) * (_size));
 
-    resource.read(cdata, *_size);
+    resource.read(cdata, _size);
     resource.close();
 
     return reinterpret_cast<unsigned char *>(cdata);
@@ -184,7 +177,4 @@ void setCurrentThreadPriority(int priority){
 }
 
 void initGLExtensions() {
-//    glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYPROC)glfwGetProcAddress("glBindVertexArray");
-//    glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSPROC)glfwGetProcAddress("glDeleteVertexArrays");
-//    glGenVertexArraysOESEXT = (PFNGLGENVERTEXARRAYSPROC)glfwGetProcAddress("glGenVertexArrays");
 }

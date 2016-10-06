@@ -1,7 +1,6 @@
 #include <QDebug>
 #include "tangramwidget.h"
 
-#include <tangram.h>
 #include <curl/curl.h>
 #include <cstdlib>
 #include <QOpenGLContext>
@@ -34,49 +33,48 @@ TangramWidget::~TangramWidget()
 
 void TangramWidget::initializeGL()
 {
-    qDebug() << Q_FUNC_INFO << ".--------------";
-    glBindVertexArrayOESEXT = (PFNGLBINDVERTEXARRAYPROC)context()->getProcAddress("glBindVertexArray");
-    glDeleteVertexArraysOESEXT = (PFNGLDELETEVERTEXARRAYSPROC)context()->getProcAddress("glDeleteVertexArrays");
-    glGenVertexArraysOESEXT = (PFNGLGENVERTEXARRAYSPROC)context()->getProcAddress("glGenVertexArrays");
 
-    qDebug() << Q_FUNC_INFO << glBindVertexArrayOESEXT << glDeleteVertexArraysOESEXT << glGenVertexArraysOESEXT;
+    if (!m_map) {
+        setQtGlFunctions(this->context());
+        m_map = new Tangram::Map();
+        qDebug() << "m_sceneFile:" << m_sceneFile.fileName();
+        m_map->loadScene(m_sceneFile.fileName().toStdString().c_str(), true);
+    }
+
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     qDebug() << "Version:" << f->glGetString(GL_VERSION);
     f->glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-    Tangram::initialize(m_sceneFile.fileName().toStdString().c_str());
-    Tangram::setupGL();
-    Tangram::resize(width(),
-                    height());
+    m_map->setupGL();
+    m_map->resize(width(), height());
 
     data_source = std::make_shared<Tangram::ClientGeoJsonSource>("touch", "");
-    Tangram::addDataSource(data_source);
+    m_map->addDataSource(data_source);
 }
 
 void TangramWidget::paintGL()
 {
     QDateTime now = QDateTime::currentDateTime();
-    Tangram::update(1.f);
-    Tangram::render();
+    m_map->update(1.f);
+    m_map->render();
     m_lastRendering = now;
 }
 
 void TangramWidget::resizeGL(int w, int h)
 {
-    Tangram::resize(w,
-                    h);
+    m_map->resize(w, h);
 }
 
 void TangramWidget::mousePressEvent(QMouseEvent *event)
 {
-    Tangram::handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
+    m_map->handlePanGesture(0.0f, 0.0f, 0.0f, 0.0f);
     m_lastMousePos = event->pos();
     m_lastMouseEvent = event->timestamp();
 }
 
 void TangramWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    Tangram::handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
+    m_map->handlePanGesture(m_lastMousePos.x(), m_lastMousePos.y(),
                               event->x(), event->y());
 
     if (m_panning && (event->timestamp() - m_lastMouseEvent) != 0) {
@@ -130,11 +128,11 @@ bool TangramWidget::mouseWheelEvent(QWheelEvent *ev)
     double x = ev->posF().x();
     double y = ev->posF().y();
     if (ev->modifiers() & Qt::ControlModifier)
-        Tangram::handleShoveGesture(0.05 * ev->angleDelta().y());
+        m_map->handleShoveGesture(0.05 * ev->angleDelta().y());
     else if (ev->modifiers() & Qt::AltModifier)
-        Tangram::handleRotateGesture(x, y, 0.0005 * ev->angleDelta().x());
+        m_map->handleRotateGesture(x, y, 0.0005 * ev->angleDelta().x());
     else
-        Tangram::handlePinchGesture(x, y, 1.0 + 0.0005 * ev->angleDelta().y(), 0.f);
+        m_map->handlePinchGesture(x, y, 1.0 + 0.0005 * ev->angleDelta().y(), 0.f);
 }
 
 bool TangramWidget::gestureEvent(QGestureEvent *ev)

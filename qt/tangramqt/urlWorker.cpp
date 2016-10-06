@@ -1,6 +1,5 @@
 #include "urlWorker.h"
-
-#include <curl/curl.h>
+#include "log.h"
 
 static size_t write_data(void *_buffer, size_t _size, size_t _nmemb, void *_dataPtr) {
 
@@ -62,6 +61,9 @@ void UrlWorker::perform(std::unique_ptr<UrlTask> _task) {
 
         m_task->callback(std::move(m_task->content));
         m_task.reset();
+
+        // Run processNetworkQueue() for pending tasks
+        requestRender();
 
         return true;
     });
