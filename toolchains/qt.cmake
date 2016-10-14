@@ -51,6 +51,7 @@ set(CMAKE_AUTORCC ON)
 find_package(Qt5Core)
 find_package(Qt5Qml)
 find_package(Qt5Quick)
+find_package(Qt5Location)
 # find_package(Qt5Gui)
 # find_package(Qt5Widgets)
 find_package(Qt5OpenGL)
@@ -91,12 +92,15 @@ add_library(${PLUGIN_NAME} SHARED
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/tangramquick_plugin.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/tangramquick.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/urlWorker.cpp
+  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangramgesturearea.cpp
+  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammap.cpp
+  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammapcontroller.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_gl.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_qt.cpp)
 
 target_link_libraries(${PLUGIN_NAME}
   PUBLIC
-  Qt5::Core Qt5::Qml Qt5::Quick
+  Qt5::Core Qt5::Qml Qt5::Quick Qt5::Location
   #"-Wl,-whole-archive"
   ${CORE_LIBRARY}
   #"-Wl,-no-whole-archive")

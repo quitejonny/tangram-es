@@ -1,6 +1,6 @@
 TEMPLATE = lib
 TARGET = tangramquick
-QT += qml quick
+QT += qml quick location
 CONFIG += qt plugin c++14
 
 TARGET = $$qtLibraryTarget($$TARGET)
@@ -47,14 +47,20 @@ SOURCES += \
     tangramquick.cpp \
     urlWorker.cpp \
     platform_qt.cpp \
-    platform_gl.cpp
+    platform_gl.cpp \
+    qtangramgesturearea.cpp \
+    qtangrammap.cpp \
+    qtangrammapcontroller.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
     tangramquick.h \
     urlWorker.h \
     platform_qt.h \
-    platform_gl.h
+    platform_gl.h \
+    qtangramgesturearea.h \
+    qtangrammap.h \
+    qtangrammapcontroller.h
 
 DISTFILES = qmldir
 

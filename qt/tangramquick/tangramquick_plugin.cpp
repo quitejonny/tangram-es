@@ -6,7 +6,7 @@
 void TangramquickPlugin::registerTypes(const char *uri)
 {
     // @uri com.mapzen.tangram
-    qmlRegisterType<TangramQuick>(uri, 1, 0, "Tangram");
+    qmlRegisterType<QDeclarativeTangramMap>(uri, 1, 0, "TangramMap");
 }
 
 

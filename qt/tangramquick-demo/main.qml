@@ -1,5 +1,7 @@
 import QtQuick 2.3
 import QtQuick.Window 2.2
+//import QtLocation 5.2
+import QtPositioning 5.2
 import com.mapzen.tangram 1.0
 
 Window {
@@ -34,12 +36,13 @@ Window {
     }
 
 
-    Tangram {
+    TangramMap {
         id: map
         focus: true
         anchors.fill: parent;
         sceneConfiguration:  "scene.yaml"
-        zoom: 16
+        zoomLevel: 16
+	center: QtPositioning.coordinate(51.5099, -0.1181)
         tilt: 0
         continuousRendering: true
 
@@ -67,35 +70,37 @@ Window {
             } else if (event.key === Qt.Key_I) {
                 queueSceneUpdate("cameras", "{ main_camera: { type: isometric } }")
                 applySceneUpdates()
+            } else if (event.key === Qt.Key_J) {
+                center = QtPositioning.coordinate(51.5099, -0.1181)
             }
         }
     }
 
     // Just to show something interesting
-    SequentialAnimation {
-        id:ani
-        PauseAnimation { duration: 2000 }
-        ParallelAnimation {
-            NumberAnimation { target: scale; property: "xScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
-            NumberAnimation { target: scale; property: "yScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
-        }
-        NumberAnimation { target: rotation; property: "angle"; to: 80; duration: 1000; easing.type: Easing.InOutCubic }
-        NumberAnimation { target: rotation; property: "angle"; to: -80; duration: 1000; easing.type: Easing.InOutCubic }
-        NumberAnimation { target: rotation; property: "angle"; to: 0; duration: 1000; easing.type: Easing.InOutCubic }
-        NumberAnimation { target: map; property: "opacity"; to: 0.3; duration: 1000; easing.type: Easing.InOutCubic }
-        PauseAnimation { duration: 1000 }
-        NumberAnimation { target: map; property: "opacity"; to: 1.0; duration: 1000; easing.type: Easing.InOutCubic }
-        ParallelAnimation {
-            NumberAnimation { target: scale; property: "xScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
-            NumberAnimation { target: scale; property: "yScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
-        }
-        NumberAnimation { target: map; property: "zoom"; to: 14; duration: 2000; easing.type: Easing.InOutBack }
-        NumberAnimation { target: map; property: "zoom"; to: 16; duration: 1000; easing.type: Easing.InOutBack }
-        NumberAnimation { target: map; property: "tilt"; to: 45; duration: 2000; easing.type: Easing.InOutBack }
-        NumberAnimation { target: map; property: "tilt"; to: 0; duration: 1000; easing.type: Easing.InOutBack }
+    // SequentialAnimation {
+    //     id:ani
+    //     PauseAnimation { duration: 2000 }
+    //     ParallelAnimation {
+    //         NumberAnimation { target: scale; property: "xScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
+    //         NumberAnimation { target: scale; property: "yScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
+    //     }
+    //     NumberAnimation { target: rotation; property: "angle"; to: 80; duration: 1000; easing.type: Easing.InOutCubic }
+    //     NumberAnimation { target: rotation; property: "angle"; to: -80; duration: 1000; easing.type: Easing.InOutCubic }
+    //     NumberAnimation { target: rotation; property: "angle"; to: 0; duration: 1000; easing.type: Easing.InOutCubic }
+    //     NumberAnimation { target: map; property: "opacity"; to: 0.3; duration: 1000; easing.type: Easing.InOutCubic }
+    //     PauseAnimation { duration: 1000 }
+    //     NumberAnimation { target: map; property: "opacity"; to: 1.0; duration: 1000; easing.type: Easing.InOutCubic }
+    //     ParallelAnimation {
+    //         NumberAnimation { target: scale; property: "xScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
+    //         NumberAnimation { target: scale; property: "yScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
+    //     }
+    //     NumberAnimation { target: map; property: "zoomLevel"; to: 14; duration: 2000; easing.type: Easing.InOutBack }
+    //     NumberAnimation { target: map; property: "zoomLevel"; to: 16; duration: 1000; easing.type: Easing.InOutBack }
+    //     NumberAnimation { target: map; property: "tilt"; to: 45; duration: 2000; easing.type: Easing.InOutBack }
+    //     NumberAnimation { target: map; property: "tilt"; to: 0; duration: 1000; easing.type: Easing.InOutBack }
 
-        running: true
-        loops: Animation.Infinite
-    }
+    //     running: true
+    //     loops: Animation.Infinite
+    // }
 }
 
