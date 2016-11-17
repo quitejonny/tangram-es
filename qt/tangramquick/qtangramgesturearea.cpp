@@ -619,7 +619,9 @@ bool QTangramGestureArea::canStartPan()
 
 void QTangramGestureArea::updatePan()
 {
-    m_map->tangramObject()->handlePanGesture(m_lastPos.x(), m_lastPos.y(), m_sceneCenter.x(), m_sceneCenter.y());
+    m_map->tangramObject()->handlePanGesture(m_lastPos.x(), m_lastPos.y(),
+                                             0.25*m_lastPos.x() + 0.75*m_sceneCenter.x(),
+                                             0.25*m_lastPos.y() + 0.75*m_sceneCenter.y());
 }
 
 void QTangramGestureArea::tryStartFlick()

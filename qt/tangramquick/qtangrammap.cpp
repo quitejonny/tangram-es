@@ -9,7 +9,8 @@ QTangramMap::QTangramMap(QObject *parent)
     : QObject(parent),
       m_tangramMap(0),
       m_controller(0),
-      m_mutex()
+      m_mutex(),
+      m_scene()
 {
     m_tangramMap = new Tangram::Map();
     m_controller = new QTangramMapController(this);
@@ -30,6 +31,18 @@ int QTangramMap::height() const
 void QTangramMap::resize(int width, int height)
 {
     m_tangramMap->resize(width, height);
+}
+
+void QTangramMap::setScene(QUrl scene, bool useScenePos)
+{
+    m_scene = scene;
+    m_tangramMap->loadSceneAsync(m_scene.fileName().toStdString().c_str(),
+                                 useScenePos, std::bind(&QTangramMap::sceneChanged, this));
+}
+
+QUrl QTangramMap::scene()
+{
+    return m_scene;
 }
 
 QTangramMapController* QTangramMap::mapController()

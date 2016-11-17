@@ -13,6 +13,8 @@
 class TangramQuickRenderer;
 class QTangramMap;
 class QTangramGestureArea;
+class QTangramGeometry;
+
 class QDeclarativeTangramMap : public QQuickFramebufferObject
 {
     Q_OBJECT
@@ -40,6 +42,10 @@ public:
     float tilt() const;
     int moveAnimationDuration() const;
     bool continuousRendering() const;
+
+    Q_INVOKABLE void removeMapItem(QTangramGeometry *item);
+    Q_INVOKABLE void addMapItem(QTangramGeometry *item);
+
 
 public slots:
     void setZoomLevel(qreal zoomLevel);
@@ -74,9 +80,13 @@ protected:
     void touchEvent(QTouchEvent *event) Q_DECL_OVERRIDE ;
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE ;
 
+    void componentComplete() Q_DECL_OVERRIDE;
 
 private:
     void setMap(QTangramMap* map);
+
+private slots:
+    void populateMap();
 
 private:
     enum SyncState {
@@ -124,11 +134,11 @@ private:
     QUrl m_sceneUrl;
     QElapsedTimer m_elapsedTimer;
     bool m_glInitialized;
+    bool m_useScenePosition;
     QMutex m_renderMutex;
 
     QGeoCoordinate m_center;
     qreal m_heading;
-    qreal m_zoomLevel;
     QSize m_size;
     float m_tilt;
     int m_moveAnimationDuration;

@@ -35,16 +35,26 @@ Window {
             "
     }
 
-
     TangramMap {
         id: map
         focus: true
         anchors.fill: parent;
-        sceneConfiguration:  "scene.yaml"
+        sceneConfiguration: "scene.yaml"
         zoomLevel: 16
-	center: QtPositioning.coordinate(51.5099, -0.1181)
+        center: QtPositioning.coordinate(40.7053, -74.0098)
         tilt: 0
         continuousRendering: true
+
+        TangramPolyline {
+            id: line
+            path: [
+                QtPositioning.coordinate(40.7053, -74.0098),
+                QtPositioning.coordinate(40.7753, -74.0098),
+            ]
+            line.color: "#50FF0000"
+            line.width: 5
+            line.style: "heightglowline"
+        }
 
         Behavior on heading {
             NumberAnimation { duration: 1000; easing.type: Easing.Linear }
@@ -71,7 +81,12 @@ Window {
                 queueSceneUpdate("cameras", "{ main_camera: { type: isometric } }")
                 applySceneUpdates()
             } else if (event.key === Qt.Key_J) {
-                center = QtPositioning.coordinate(51.5099, -0.1181)
+                center = QtPositioning.coordinate(51.5099, -0.1171)
+            } else if (event.key === Qt.Key_F) {
+                if (line.line.width === 5)
+                    line.line.width = 10
+                else
+                    line.line.width = 5
             }
         }
     }

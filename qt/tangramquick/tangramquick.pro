@@ -50,7 +50,9 @@ SOURCES += \
     platform_gl.cpp \
     qtangramgesturearea.cpp \
     qtangrammap.cpp \
-    qtangrammapcontroller.cpp
+    qtangrammapcontroller.cpp \
+    qtangramgeometry.cpp \
+    qtangrampolyline.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
@@ -60,7 +62,9 @@ HEADERS += \
     platform_gl.h \
     qtangramgesturearea.h \
     qtangrammap.h \
-    qtangrammapcontroller.h
+    qtangrammapcontroller.h \
+    qtangramgeometry.h \
+    qtangrampolyline.h
 
 DISTFILES = qmldir
 

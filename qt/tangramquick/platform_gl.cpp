@@ -280,4 +280,51 @@ void GL::deleteVertexArrays(GLsizei n, const GLuint *arrays) {
 void GL::genVertexArrays(GLsizei n, GLuint *arrays) {
     GL_CHECK(__qt_gl_funcs->glGenVertexArrays(n, arrays));
 }
+
+// Framebuffer
+void GL::bindFramebuffer(GLenum target, GLuint framebuffer) {
+    GL_CHECK(__qt_gl_funcs->glBindFramebuffer(target, framebuffer));
+}
+
+void GL::genFramebuffers(GLsizei n, GLuint *framebuffers) {
+    GL_CHECK(__qt_gl_funcs->glGenFramebuffers(n, framebuffers));
+}
+
+void GL::framebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
+                              GLuint texture, GLint level) {
+    GL_CHECK(__qt_gl_funcs->glFramebufferTexture2D(target, attachment, textarget, texture, level));
+}
+
+void GL::renderbufferStorage(GLenum target, GLenum internalformat, GLsizei width,
+                             GLsizei height) {
+    GL_CHECK(__qt_gl_funcs->glRenderbufferStorage(target, internalformat, width, height));
+}
+
+void GL::framebufferRenderbuffer(GLenum target, GLenum attachment,
+                                 GLenum renderbuffertarget, GLuint renderbuffer) {
+    GL_CHECK(__qt_gl_funcs->glFramebufferRenderbuffer(target, attachment, renderbuffertarget, renderbuffer));
+}
+
+void GL::genRenderbuffers(GLsizei n, GLuint *renderbuffers) {
+    GL_CHECK(__qt_gl_funcs->glGenRenderbuffers(n, renderbuffers));
+}
+
+void GL::bindRenderbuffer(GLenum target, GLuint renderbuffer) {
+    GL_CHECK(__qt_gl_funcs->glBindRenderbuffer(target, renderbuffer));
+}
+
+void GL::deleteFramebuffers(GLsizei n, const GLuint *framebuffers) {
+    GL_CHECK(__qt_gl_funcs->glDeleteFramebuffers(n, framebuffers));
+}
+
+void GL::deleteRenderbuffers(GLsizei n, const GLuint *renderbuffers) {
+    GL_CHECK(__qt_gl_funcs->glDeleteRenderbuffers(n, renderbuffers));
+}
+
+GLenum GL::checkFramebufferStatus(GLenum target) {
+    GLenum status = __qt_gl_funcs->glCheckFramebufferStatus(target);
+    GL_CHECK();
+    return status;
+}
+
 }
