@@ -52,7 +52,8 @@ SOURCES += \
     qtangrammap.cpp \
     qtangrammapcontroller.cpp \
     qtangramgeometry.cpp \
-    qtangrampolyline.cpp
+    qtangrampolyline.cpp \
+    qtangrampoint.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
@@ -64,7 +65,8 @@ HEADERS += \
     qtangrammap.h \
     qtangrammapcontroller.h \
     qtangramgeometry.h \
-    qtangrampolyline.h
+    qtangrampolyline.h \
+    qtangrampoint.h
 
 DISTFILES = qmldir
 

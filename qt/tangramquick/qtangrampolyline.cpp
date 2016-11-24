@@ -57,10 +57,8 @@ void QTangramPolylineProperties::updateProperty(QString key)
 }
 
 QTangramPolyline::QTangramPolyline(QObject *parent)
-    : QTangramGeometry(parent)
+    : QTangramGeometry(parent, new QTangramPolylineProperties(parent))
 {
-    m_properties = new QTangramPolylineProperties(parent);
-    connect(m_properties, SIGNAL(stylingChanged()), this, SLOT(setStyling()));
 }
 
 QTangramPolyline::~QTangramPolyline()

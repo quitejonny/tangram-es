@@ -65,7 +65,6 @@ private:
     QGeoCoordinate parseCoordinate(const QJSValue &value, bool *ok);
     void setPathFromGeoList(const QList<QGeoCoordinate> &path);
     QList<QGeoCoordinate> m_path;
-    QTangramPolylineProperties m_line;
 };
 
 #endif // QTANGRAMPOLYLINE_H

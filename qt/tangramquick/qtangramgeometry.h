@@ -40,7 +40,7 @@ class QTangramGeometry : public QObject
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
     Q_PROPERTY(int drawOrder READ drawOrder WRITE setDrawOrder NOTIFY drawOrderChanged)
 public:
-    explicit QTangramGeometry(QObject *parent = 0);
+    explicit QTangramGeometry(QObject *parent = 0, QTangramGeometryProperties *properties = 0);
 
     void setMap(QTangramMap *map);
     QTangramMap *map();

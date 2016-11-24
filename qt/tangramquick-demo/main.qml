@@ -35,25 +35,37 @@ Window {
             "
     }
 
+    property var centerCoordinate: QtPositioning.coordinate(40.7053, -74.0098)
+
     TangramMap {
         id: map
         focus: true
         anchors.fill: parent;
         sceneConfiguration: "scene.yaml"
         zoomLevel: 16
-        center: QtPositioning.coordinate(40.7053, -74.0098)
+        center: centerCoordinate
         tilt: 0
         continuousRendering: true
 
         TangramPolyline {
             id: line
             path: [
-                QtPositioning.coordinate(40.7053, -74.0098),
-                QtPositioning.coordinate(40.7753, -74.0098),
+                centerCoordinate,
+                QtPositioning.coordinate(centerCoordinate.latitude + 0.07, centerCoordinate.longitude)
             ]
             line.color: "#50FF0000"
             line.width: 5
             line.style: "heightglowline"
+        }
+
+        TangramPoint {
+            id: point
+            coordinate: centerCoordinate
+            visual.size: "32px"
+            visual.style: "icons"
+            Component.onCompleted: {
+                visual.setStyling("sprite", "train")
+            }
         }
 
         Behavior on heading {

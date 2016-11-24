@@ -97,6 +97,7 @@ add_library(${PLUGIN_NAME} SHARED
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammapcontroller.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangramgeometry.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrampolyline.cpp
+  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrampoint.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_gl.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_qt.cpp)
 

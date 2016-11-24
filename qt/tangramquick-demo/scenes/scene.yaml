@@ -1,0 +1,31 @@
+cameras:
+    iso-camera:
+        # Manhattan
+        position: [-74.00976419448854, 40.70532700869127, 16]
+        type: isometric
+        axis: [0, 1]
+        active: false
+    flat-camera:
+        # Aachen
+        position: [6.101704, 50.812354, 14]
+        type: flat
+        fov: 45
+        max_tilt: [[2, 0], [16, 90]]
+        active: true
+
+sources:
+    thunderforest-cyclemap:
+        type: Raster
+        url: https://a.tile.thunderforest.com/cycle/{z}/{x}/{y}.png
+
+layers:
+    cyclemap:
+        data: { source: thunderforest-cyclemap }
+        draw:
+            raster:
+                order: 0 # draw on bottom
+
+styles:
+    roads:
+        base: lines
+        blend: overlay

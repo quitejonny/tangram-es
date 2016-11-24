@@ -44,14 +44,17 @@ void QTangramGeometryProperties::updateProperty(QString key)
     Q_UNUSED(key)
 }
 
-QTangramGeometry::QTangramGeometry(QObject *parent)
+QTangramGeometry::QTangramGeometry(QObject *parent, QTangramGeometryProperties *properties)
     : QObject(parent),
       m_markerId(-1),
-      m_properties(0),
+      m_properties(properties),
       m_visible(true),
       m_drawOrder(-1),
       m_map(0)
 {
+    if (!properties)
+        m_properties = new QTangramGeometryProperties(parent);
+    connect(m_properties, SIGNAL(stylingChanged()), this, SLOT(setStyling()));
 }
 
 void QTangramGeometry::setVisible(bool visible)
