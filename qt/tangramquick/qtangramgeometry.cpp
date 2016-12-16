@@ -1,4 +1,5 @@
 #include "qtangramgeometry.h"
+#include "qtangrampoint.h"
 #include "qtangrammap.h"
 #include "tangram.h"
 #include <QJsonObject>
@@ -48,9 +49,10 @@ QTangramGeometry::QTangramGeometry(QObject *parent, QTangramGeometryProperties *
     : QObject(parent),
       m_markerId(-1),
       m_properties(properties),
+      m_map(0),
       m_visible(true),
       m_drawOrder(-1),
-      m_map(0)
+      m_clickable(false)
 {
     if (!properties)
         m_properties = new QTangramGeometryProperties(parent);
@@ -93,8 +95,13 @@ int QTangramGeometry::drawOrder()
 
 void QTangramGeometry::setMap(QTangramMap *map)
 {
+    if (!map && m_map) {
+        m_map->setClickable(this, false);
+    }
+
     m_map = map;
     if (m_map) {
+        m_map->setClickable(this, m_clickable);
         m_tangramMap = m_map->tangramObject();
         m_markerId = m_tangramMap->markerAdd();
         m_tangramMap->markerSetVisible(m_markerId, m_visible);
@@ -126,4 +133,25 @@ void QTangramGeometry::setStyling()
 
 void QTangramGeometry::initGeometry()
 {
+}
+
+void QTangramGeometry::setClickable(bool clickable)
+{
+    if (clickable == m_clickable)
+        return;
+
+    m_clickable = clickable;
+    if (m_markerId != -1)
+        m_map->setClickable(this, m_clickable);
+    emit clickableChanged();
+}
+
+bool QTangramGeometry::clickable()
+{
+    return m_clickable;
+}
+
+int QTangramGeometry::markerId()
+{
+    return m_markerId;
 }

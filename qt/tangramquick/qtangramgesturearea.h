@@ -6,11 +6,13 @@
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QGeoCoordinate>
+#include "tangram.h"
 
 class QDeclarativeTangramMap;
 class QTouchEvent;
 class QWheelEvent;
 class QTangramMap;
+class QTangramPoint;
 
 class QTangramMapPinchEvent : public QObject
 {
@@ -89,6 +91,7 @@ public:
 
     bool isPinchActive() const;
     bool isPanActive() const;
+    bool isDragActive() const;
     bool isActive() const;
 
     bool enabled() const;
@@ -104,6 +107,9 @@ public:
     void handleMouseReleaseEvent(QMouseEvent *event);
     void handleMouseUngrabEvent();
     void handleTouchUngrabEvent();
+
+    void onClickedFeatures(const std::vector<Tangram::TouchItem> &items);
+    void onDragFeatures(const std::vector<Tangram::TouchItem> &items);
 
     void setMinimumZoomLevel(qreal min);
     qreal minimumZoomLevel() const;
@@ -130,6 +136,8 @@ Q_SIGNALS:
     void flickStarted();
     void flickFinished();
     void preventStealingChanged();
+
+    void clicked();
 private:
     void update();
 
@@ -139,6 +147,8 @@ private:
     void updateOneTouchPoint();
     void startTwoTouchPoints();
     void updateTwoTouchPoints();
+
+    void actionStateMachine();
 
     // All pinch related code, which encompasses zoom
     void pinchStateMachine();
@@ -151,8 +161,14 @@ private:
     // includes the flick based panning after letting go
     void panStateMachine();
     bool canStartPan();
+    void startPan();
     void updatePan();
     void tryStartFlick();
+
+    // Drag related code
+    void startDrag();
+    void updateDrag();
+    void endDrag();
 
     bool pinchEnabled() const;
     void setPinchEnabled(bool enabled);
@@ -171,6 +187,16 @@ private:
     QTangramMap* m_map;
     QDeclarativeTangramMap *m_declarativeMap;
     bool m_enabled;
+
+    struct Drag
+    {
+        Drag() : m_id(0), m_latitudeDistance(0), m_longitudeDistance(0) {}
+        QTangramPoint* m_item;
+        int m_id;
+        qreal m_latitudeDistance;
+        qreal m_longitudeDistance;
+
+    } m_drag;
 
     struct Pinch
     {
@@ -223,6 +249,7 @@ private:
     qreal m_distanceBetweenTouchPoints;
     qreal m_velocityBetweenTouchPoints;
     QPointF m_sceneCenter;
+    QPointF m_sceneCenterLast;
     bool m_preventStealing;
     bool m_panEnabled;
 
@@ -241,11 +268,16 @@ private:
         pinchActive
     } m_pinchState;
 
-    enum FlickState
+    enum ActionState
     {
-        panInactive,
-        panActive,
-    } m_flickState;
+        actionInactive,
+        actionDown,
+        actionDownItem,
+        actionPan,
+        actionDrag,
+        actionClick,
+        actionFlick
+    } m_actionState;
 };
 
 QML_DECLARE_TYPE(QTangramGestureArea)

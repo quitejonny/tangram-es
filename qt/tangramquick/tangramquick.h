@@ -112,6 +112,8 @@ private:
     QTangramGestureArea* m_gestureArea;
     bool m_tangramMapInitialized;
 
+    QVector<QTangramGeometry *> m_mapItems;
+
     friend class TangramQuickRenderer;
     friend class QTangramGestureArea;
     Q_DISABLE_COPY(QDeclarativeTangramMap)

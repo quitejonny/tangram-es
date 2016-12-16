@@ -3,6 +3,8 @@
 #include "qtangrammap.h"
 #include "qtangrammapcontroller.h"
 #include "tangram.h"
+#include "qtangramgeometry.h"
+#include "qtangrampoint.h"
 
 #include <QtGui/QGuiApplication>
 #include <QtGui/QWheelEvent>
@@ -29,7 +31,7 @@ QTangramGestureArea::QTangramGestureArea(QDeclarativeTangramMap *map)
     m_flick.m_maxVelocity = QML_MAP_FLICK_DEFAULTMAXVELOCITY;
     m_touchPointState = touchPoints0;
     m_pinchState = pinchInactive;
-    m_flickState = panInactive;
+    m_actionState = actionInactive;
 }
 
 void QTangramGestureArea::setMap(QTangramMap *map)
@@ -85,7 +87,12 @@ bool QTangramGestureArea::isPinchActive() const
 
 bool QTangramGestureArea::isPanActive() const
 {
-    return m_flickState == panActive;
+    return m_actionState == actionPan;
+}
+
+bool QTangramGestureArea::isDragActive() const
+{
+    return m_actionState == actionDrag;
 }
 
 bool QTangramGestureArea::enabled() const
@@ -220,7 +227,7 @@ void QTangramGestureArea::handleMouseReleaseEvent(QMouseEvent *event)
     if (!m_mousePoint.isNull()) {
         //this looks super ugly , however is required in case we do not get synthesized MouseReleaseEvent
         //and we reset the point already in handleTouchUngrabEvent
-        m_mousePoint.reset(createTouchPointFromMouseEvent(event, Qt::TouchPointReleased));
+        m_mousePoint.reset();
         if (m_touchPoints.isEmpty()) update();
     }
     event->accept();
@@ -228,7 +235,6 @@ void QTangramGestureArea::handleMouseReleaseEvent(QMouseEvent *event)
 
 void QTangramGestureArea::handleMouseUngrabEvent()
 {
-
     m_mousePoint.reset();
     if (m_touchPoints.isEmpty() && !m_mousePoint.isNull()) {
         update();
@@ -248,11 +254,10 @@ void QTangramGestureArea::handleTouchEvent(QTouchEvent *event)
 {
     m_touchPoints.clear();
     m_mousePoint.reset();
-    if (!(event->touchPointStates().testFlag(Qt::TouchPointReleased))) {
-        for (auto &touchPoint : event->touchPoints())
+    for (auto &touchPoint : event->touchPoints())
+        if ( touchPoint.state() != Qt::TouchPointReleased)
             m_touchPoints << touchPoint;
-    }
-    if (event->touchPoints().count() >= 2 && !(event->touchPointStates().testFlag(Qt::TouchPointReleased))) {
+    if (m_touchPoints.count() >= 2) {
         event->accept();
     } else {
         event->ignore();
@@ -269,7 +274,7 @@ void QTangramGestureArea::handleWheelEvent(QWheelEvent *event)
     if (qAbs(scaleDelta) > 20)
         scaleDelta = 20*scaleDelta/abs(scaleDelta);
     qreal scale = 1 + qreal(0.003)*scaleDelta;
-    m_map->tangramObject()->handlePinchGesture(m_sceneCenter.x(), m_sceneCenter.y(), scale, 0.f);
+    m_map->tangramObject()->handlePinchGesture(event->pos().x(), event->pos().y(), scale, 0.f);
 
     emit m_map->mapController()->zoomChanged(m_map->mapController()->zoom());
     event->accept();
@@ -325,6 +330,7 @@ void QTangramGestureArea::update()
     m_allPoints << m_touchPoints;
     if (m_allPoints.isEmpty() && !m_mousePoint.isNull())
         m_allPoints << *m_mousePoint.data();
+    m_sceneCenterLast = m_sceneCenter;
 
     touchPointStateMachine();
 
@@ -336,8 +342,40 @@ void QTangramGestureArea::update()
     // The stopPan function ensures that pan stops immediately when disabled,
     // but the line below allows pan continue its current gesture if you disable
     // the whole gesture (enabled_ flag), this keeps the enabled_ consistent with the pinch
-    if (isPanActive() || (m_enabled && m_flick.m_enabled && (m_acceptedGestures & (PanGesture | FlickGesture))))
-        panStateMachine();
+    actionStateMachine();
+}
+
+void QTangramGestureArea::onDragFeatures(const std::vector<Tangram::TouchItem> &items)
+{
+    if (m_touchPointState != touchPoints1)
+        return;
+    for (const Tangram::TouchItem &item : items) {
+        int id = item.properties->getNumber("id");
+        auto kind = item.properties->getString("kind");
+        if (kind != "dynamicMarker")
+            continue;
+        for (auto &marker : m_map->m_draggableItems) {
+            if (id == marker->markerId()) {
+                m_drag.m_item = marker;
+                m_actionState = actionDownItem;
+                return;
+            }
+        }
+    }
+}
+
+void QTangramGestureArea::onClickedFeatures(const std::vector<Tangram::TouchItem> &items)
+{
+    for (const Tangram::TouchItem &item: items) {
+        int id = item.properties->getNumber("id");
+        auto kind = item.properties->getString("kind");
+        if (kind != "dynamicMarker")
+            continue;
+        for (auto &marker : m_declarativeMap->m_map->m_clickableItems) {
+            if (id == marker->markerId())
+                emit marker->clicked();
+        }
+    }
 }
 
 void QTangramGestureArea::touchPointStateMachine()
@@ -390,8 +428,9 @@ void QTangramGestureArea::touchPointStateMachine()
 
 void QTangramGestureArea::startOneTouchPoint()
 {
-    m_sceneStartPoint1 = mapFromScene(m_allPoints.at(0).scenePos());
+    m_sceneStartPoint1 = mapFromScene(m_allPoints.first().scenePos());
     m_lastPos = m_sceneStartPoint1;
+    m_sceneCenterLast = m_lastPos;
     m_lastPosTime.start();
     QGeoCoordinate startCoord = m_map->itemPositionToCoordinate(m_sceneStartPoint1);
     // ensures a smooth transition for panning
@@ -403,7 +442,7 @@ void QTangramGestureArea::startOneTouchPoint()
 
 void QTangramGestureArea::updateOneTouchPoint()
 {
-    m_sceneCenter = mapFromScene(m_allPoints.at(0).scenePos());
+    m_sceneCenter = mapFromScene(m_allPoints.first().scenePos());
     updateVelocityList(m_sceneCenter);
 }
 
@@ -414,6 +453,7 @@ void QTangramGestureArea::startTwoTouchPoints()
     m_sceneStartPoint2 = mapFromScene(m_allPoints.at(1).scenePos());
     QPointF startPos = (m_sceneStartPoint1 + m_sceneStartPoint2) * 0.5;
     m_lastPos = startPos;
+    m_sceneCenterLast = m_lastPos;
     m_lastPosTime.start();
     QGeoCoordinate startCoord = m_map->itemPositionToCoordinate(startPos);
     m_startCoord.setLongitude(m_startCoord.longitude() + startCoord.longitude() -
@@ -436,6 +476,37 @@ void QTangramGestureArea::updateTwoTouchPoints()
     m_twoTouchAngle = QLineF(p1, p2).angle();
     if (m_twoTouchAngle > 180)
         m_twoTouchAngle -= 360;
+}
+
+void QTangramGestureArea::startDrag()
+{
+    m_actionState = actionDrag;
+    m_drag.m_id = m_drag.m_item->markerId();
+    QGeoCoordinate itemCoord = m_drag.m_item->coordinate();
+    QGeoCoordinate curCoord = m_map->itemPositionToCoordinate(m_sceneStartPoint1);
+    m_drag.m_latitudeDistance = itemCoord.latitude() - curCoord.latitude();
+    m_drag.m_longitudeDistance = itemCoord.longitude() - curCoord.longitude();
+}
+
+void QTangramGestureArea::updateDrag()
+{
+    QGeoCoordinate curPos = m_map->itemPositionToCoordinate(m_allPoints.first().pos());
+    Tangram::LngLat lngLat(curPos.longitude() + m_drag.m_longitudeDistance,
+                           curPos.latitude() + m_drag.m_latitudeDistance);
+    m_map->tangramObject()->markerSetPoint(m_drag.m_id, lngLat);
+}
+
+void QTangramGestureArea::endDrag()
+{
+    m_actionState = actionInactive;
+    QGeoCoordinate coordinate = m_map->itemPositionToCoordinate(m_lastPos);
+    coordinate.setLatitude(coordinate.latitude() + m_drag.m_latitudeDistance);
+    coordinate.setLongitude(coordinate.longitude() + m_drag.m_longitudeDistance);
+    m_drag.m_item->setCoordinate(coordinate);
+    m_drag.m_item = 0;
+    m_drag.m_id = 0;
+    m_drag.m_latitudeDistance = 0;
+    m_drag.m_longitudeDistance = 0;
 }
 
 void QTangramGestureArea::pinchStateMachine()
@@ -559,46 +630,74 @@ void QTangramGestureArea::endPinch()
     m_pinch.m_startDist = 0;
 }
 
-void QTangramGestureArea::panStateMachine()
+void QTangramGestureArea::actionStateMachine()
 {
-    FlickState lastState = m_flickState;
-
-    // Transitions
-    switch (m_flickState) {
-    case panInactive:
-        if (canStartPan()) {
-            // Update startCoord_ to ensure smooth start for panning when going over startDragDistance
-            QGeoCoordinate newStartCoord = m_map->itemPositionToCoordinate(m_sceneCenter);
-            m_startCoord.setLongitude(newStartCoord.longitude());
-            m_startCoord.setLatitude(newStartCoord.latitude());
-            m_declarativeMap->setKeepMouseGrab(true);
-            m_flickState = panActive;
+    switch (m_actionState) {
+    case actionInactive:
+        if (m_enabled && m_touchPointState == touchPoints1) {
+            m_actionState = actionDown;
+            auto pos = m_allPoints.first().pos();
+            m_map->tangramObject()->pickFeaturesAt(pos.x(), pos.y(),
+                                                   std::bind(&QTangramGestureArea::onDragFeatures,
+                                                             this, std::placeholders::_1));
         }
         break;
-    case panActive:
-        if (m_allPoints.count() == 0) {
+    case actionDown:
+        if (m_allPoints.isEmpty())
+            m_actionState = actionClick;
+        else if (m_flick.m_enabled && (m_acceptedGestures & (PanGesture | FlickGesture))
+                 && canStartPan())
+            startPan();
+        break;
+    case actionDownItem:
+        if (m_allPoints.isEmpty())
+            m_actionState = actionClick;
+        else if (m_allPoints.count() == 1 && canStartPan())
+            startDrag();
+        break;
+    case actionPan:
+        if (m_allPoints.isEmpty()) {
             tryStartFlick();
             stopPan();
-            //m_flickState = panInactive;
-            // emit panFinished();
-            // // mark as inactive for use by camera
-            // if (m_pinchState == pinchInactive) {
-            //     m_declarativeMap->setKeepMouseGrab(m_preventStealing);
-            //     //m_map->prefetchData();
-            // }
         }
+        break;
+    case actionDrag:
+        if (m_allPoints.isEmpty())
+            endDrag();
+        break;
+    case actionClick:
+        break;
+    case actionFlick:
         break;
     }
 
-    if (m_flickState != lastState)
-        emit panActiveChanged();
-
-    if (m_flickState == panActive) {
+    switch (m_actionState) {
+    case actionPan:
         updatePan();
-        // this ensures 'panStarted' occurs after the pan has actually started
-        if (lastState != panActive)
-            emit panStarted();
+        break;
+    case actionDrag:
+        updateDrag();
+        break;
+    case actionClick:
+        m_actionState = actionInactive;
+        // mouse should have been released without paning or pinch. So this is a CLICK event!
+        m_map->tangramObject()->pickFeaturesAt(m_lastPos.x(), m_lastPos.y(),
+                                               std::bind(&QTangramGestureArea::onClickedFeatures,
+                                                         this, std::placeholders::_1));
+        break;
+    default:
+        break;
     }
+}
+
+void QTangramGestureArea::startPan()
+{
+    // Update startCoord_ to ensure smooth start for panning when going over startDragDistance
+    QGeoCoordinate newStartCoord = m_map->itemPositionToCoordinate(m_sceneCenter);
+    m_startCoord.setLongitude(newStartCoord.longitude());
+    m_startCoord.setLatitude(newStartCoord.latitude());
+    m_declarativeMap->setKeepMouseGrab(true);
+    m_actionState = actionPan;
 }
 
 bool QTangramGestureArea::canStartPan()
@@ -619,9 +718,8 @@ bool QTangramGestureArea::canStartPan()
 
 void QTangramGestureArea::updatePan()
 {
-    m_map->tangramObject()->handlePanGesture(m_lastPos.x(), m_lastPos.y(),
-                                             0.25*m_lastPos.x() + 0.75*m_sceneCenter.x(),
-                                             0.25*m_lastPos.y() + 0.75*m_sceneCenter.y());
+    m_map->tangramObject()->handlePanGesture(m_sceneCenterLast.x(), m_sceneCenterLast.y(),
+                                             m_sceneCenter.x(), m_sceneCenter.y());
 }
 
 void QTangramGestureArea::tryStartFlick()
@@ -638,8 +736,8 @@ void QTangramGestureArea::stopPan()
 {
     m_velocityX = 0;
     m_velocityY = 0;
-    if (m_flickState == panActive) {
-        m_flickState = panInactive;
+    if (m_actionState == actionPan) {
+        m_actionState = actionInactive;
         m_declarativeMap->setKeepMouseGrab(m_preventStealing);
         emit panFinished();
         emit panActiveChanged();

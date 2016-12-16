@@ -196,7 +196,6 @@ void QDeclarativeTangramMap::mouseReleaseEvent(QMouseEvent *event)
 {
     if (m_map) {
         m_gestureArea->handleMouseReleaseEvent(event);
-        ungrabMouse();
     } else {
         QQuickFramebufferObject::mouseReleaseEvent(event);
     }
@@ -252,6 +251,7 @@ void QDeclarativeTangramMap::removeMapItem(QTangramGeometry *item)
         return;
 
     item->setMap(0);
+    m_mapItems.removeOne(item);
     //emit mapItemsChanged();
 }
 
@@ -260,8 +260,10 @@ void QDeclarativeTangramMap::addMapItem(QTangramGeometry *item)
     qDebug() << Q_FUNC_INFO;
     if (!item || item->map())
         return;
-    if (m_map)
+    if (m_map) {
         item->setMap(m_map);
+        m_mapItems.append(item);
+    }
     // emit mapItemsChanged();
 }
 

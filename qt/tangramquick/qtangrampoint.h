@@ -41,6 +41,7 @@ class QTangramPoint : public QTangramGeometry
     Q_OBJECT
     Q_PROPERTY(QTangramPointProperties *visual READ visual NOTIFY visualChanged)
     Q_PROPERTY(QGeoCoordinate coordinate READ coordinate WRITE setCoordinate NOTIFY coordinateChanged)
+    Q_PROPERTY(bool draggable READ draggable WRITE setDraggable NOTIFY draggableChanged)
 public:
     explicit QTangramPoint(QObject *parent = 0);
     ~QTangramPoint();
@@ -48,11 +49,17 @@ public:
     void setCoordinate(const QGeoCoordinate &coordinate);
     QGeoCoordinate coordinate() const;
 
+    void setDraggable(bool draggable);
+    bool draggable();
+
+    void setMap(QTangramMap *map);
+
     QTangramPointProperties *visual();
 
 Q_SIGNALS:
     void visualChanged();
     void coordinateChanged();
+    void draggableChanged();
 
 public slots:
 
@@ -61,6 +68,7 @@ protected:
 
 private:
     QGeoCoordinate m_coordinate;
+    bool m_draggable;
 
 };
 

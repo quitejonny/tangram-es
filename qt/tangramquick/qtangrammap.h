@@ -4,11 +4,14 @@
 #include <QtCore/QObject>
 #include <QMutex>
 #include <QUrl>
+#include <QSet>
 
 class QTangramMapController;
 class TangramQuickRenderer;
 class QDeclarativeTangramMap;
 class QTangramGestureArea;
+class QTangramGeometry;
+class QTangramPoint;
 class QGeoCoordinate;
 
 namespace Tangram {
@@ -46,6 +49,8 @@ protected:
     // void setCameraData(const QGeoCameraData &cameraData);
     // virtual QSGNode *updateSceneGraph(QSGNode *node, QQuickWindow *window) = 0;
     Tangram::Map* tangramObject();
+    void setClickable(QTangramGeometry *item, bool clickable);
+    void setDraggable(QTangramPoint *item, bool draggable);
 
 public Q_SLOTS:
     void update();
@@ -63,14 +68,16 @@ private:
     QTangramMapController* m_controller;
     QMutex m_mutex;
     QUrl m_scene;
+    QSet<QTangramGeometry *> m_clickableItems;
+    QSet<QTangramPoint *> m_draggableItems;
 
     Q_DISABLE_COPY(QTangramMap)
     friend class TangramQuickRenderer;
     friend class QDeclarativeTangramMap;
     friend class QTangramGestureArea;
     friend class QTangramGeometry;
+    friend class QTangramPoint;
     friend class QTangramMapController; //setCameraData
-    //friend class QDeclarativeGeoMap; //updateSceneGraph
 };
 
 #endif // QTANGRAMMAP_H

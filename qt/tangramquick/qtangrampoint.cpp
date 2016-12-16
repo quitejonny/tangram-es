@@ -53,7 +53,8 @@ void QTangramPointProperties::updateProperty(QString key)
 
 QTangramPoint::QTangramPoint(QObject *parent)
     : QTangramGeometry(parent, new QTangramPointProperties(parent)),
-      m_coordinate()
+      m_coordinate(),
+      m_draggable(false)
 {
 }
 
@@ -94,4 +95,30 @@ void QTangramPoint::initGeometry()
 
     auto lngLat = Tangram::LngLat(m_coordinate.longitude(), m_coordinate.latitude());
     m_tangramMap->markerSetPoint(m_markerId, lngLat);
+}
+
+void QTangramPoint::setMap(QTangramMap *map)
+{
+    if (!m_map && map && m_draggable)
+        map->setDraggable(this, m_draggable);
+    else if (m_map && !map)
+        m_map->setDraggable(this, false);
+
+    QTangramGeometry::setMap(map);
+}
+
+void QTangramPoint::setDraggable(bool draggable)
+{
+    if (draggable == m_draggable)
+        return;
+
+    m_draggable = draggable;
+    if (m_markerId != -1)
+        m_map->setDraggable(this, m_draggable);
+    emit draggableChanged();
+}
+
+bool QTangramPoint::draggable()
+{
+    return m_draggable;
 }

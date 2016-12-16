@@ -39,10 +39,11 @@ class QTangramGeometry : public QObject
     Q_OBJECT
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
     Q_PROPERTY(int drawOrder READ drawOrder WRITE setDrawOrder NOTIFY drawOrderChanged)
+    Q_PROPERTY(bool clickable READ clickable WRITE setClickable NOTIFY clickableChanged)
 public:
     explicit QTangramGeometry(QObject *parent = 0, QTangramGeometryProperties *properties = 0);
 
-    void setMap(QTangramMap *map);
+    virtual void setMap(QTangramMap *map);
     QTangramMap *map();
 
     void setVisible(bool visible);
@@ -51,9 +52,16 @@ public:
     void setDrawOrder(int drawOrder);
     int drawOrder();
 
+    void setClickable(bool clickable);
+    bool clickable();
+
+    int markerId();
+
 signals:
     void visibleChanged(bool visible);
     void drawOrderChanged(int drawOrder);
+    void clickableChanged();
+    void clicked();
 
 public slots:
 
@@ -62,6 +70,7 @@ protected:
     int m_markerId;
     Tangram::Map *m_tangramMap;
     QTangramGeometryProperties* m_properties;
+    QTangramMap *m_map;
 
 protected slots:
     virtual void setStyling();
@@ -69,7 +78,7 @@ protected slots:
 private:
     bool m_visible;
     int m_drawOrder;
-    QTangramMap *m_map;
+    bool m_clickable;
 };
 
 #endif // QTANGRAMGEOMETRY_H

@@ -49,7 +49,7 @@ void UrlWorker::perform(std::unique_ptr<UrlTask> _task) {
         long httpStatusCode = 0;
         curl_easy_getinfo(m_curlHandle, CURLINFO_RESPONSE_CODE, &httpStatusCode);
 
-        if (result == CURLE_OK && httpStatusCode == 200) {
+        if (result == CURLE_OK && (httpStatusCode == 200 || httpStatusCode == 0)) {
             size_t nBytes = m_stream.tellp();
             m_stream.seekp(0);
 

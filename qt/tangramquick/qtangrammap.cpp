@@ -4,6 +4,9 @@
 #include "platform_qt.h"
 #include <QGeoCoordinate>
 #include <QPointF>
+#include <QDebug>
+#include "qtangramgeometry.h"
+#include "qtangrampoint.h"
 
 QTangramMap::QTangramMap(QObject *parent)
     : QObject(parent),
@@ -53,27 +56,19 @@ QTangramMapController* QTangramMap::mapController()
 QGeoCoordinate QTangramMap::itemPositionToCoordinate(const QPointF &pos, bool clipToViewport) const
 {
     Q_UNUSED(clipToViewport)
-    double *lat = (double*)malloc(sizeof(double));
-    double *lon = (double*)malloc(sizeof(double));
-    m_tangramMap->screenPositionToLngLat(pos.x(), pos.y(), lon, lat);
+    double lat, lon;
+    m_tangramMap->screenPositionToLngLat(pos.x(), pos.y(), &lon, &lat);
 
-    QGeoCoordinate coordinate(*lat, *lon);
-    free(lat);
-    free(lon);
-    return coordinate;
+    return QGeoCoordinate(lat, lon);
 }
 
 QPointF QTangramMap::coordinateToItemPosition(const QGeoCoordinate &coordinate, bool clipToViewport) const
 {
     Q_UNUSED(clipToViewport)
-    double *x = (double*)malloc(sizeof(double));
-    double *y = (double*)malloc(sizeof(double));
-    m_tangramMap->lngLatToScreenPosition(coordinate.longitude(), coordinate.latitude(), x, y);
+    double x, y;
+    m_tangramMap->lngLatToScreenPosition(coordinate.longitude(), coordinate.latitude(), &x, &y);
 
-    QPointF point(*x, *y);
-    free(x);
-    free(y);
-    return point;
+    return QPointF(x, y);
 }
 
 void QTangramMap::update()
@@ -84,4 +79,21 @@ void QTangramMap::update()
 Tangram::Map* QTangramMap::tangramObject()
 {
     return m_tangramMap;
+}
+
+void QTangramMap::setClickable(QTangramGeometry *item, bool clickable)
+{
+    if (clickable)
+        m_clickableItems.insert(item);
+    else
+        m_clickableItems.remove(item);
+}
+
+void QTangramMap::setDraggable(QTangramPoint *item, bool draggable)
+{
+    if (draggable)
+        m_draggableItems.insert(item);
+    else
+        m_draggableItems.remove(item);
+
 }
