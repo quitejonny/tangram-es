@@ -22,6 +22,7 @@ class QTangramMap : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QUrl scene READ scene WRITE setScene NOTIFY sceneChanged)
+    Q_PROPERTY(qreal pixelScale READ pixelScale WRITE setPixelScale NOTIFY pixelScaleChanged)
 
 public:
     QTangramMap(QObject *parent = 0);
@@ -35,6 +36,9 @@ public:
 
     void setScene(QUrl scene, bool useScenePos = false);
     QUrl scene();
+
+    void setPixelScale(qreal pixelScale);
+    qreal pixelScale();
 
     //void setActiveMapType(const QGeoMapType mapType);
     //const QGeoMapType activeMapType() const;
@@ -59,6 +63,7 @@ Q_SIGNALS:
     // void cameraDataChanged(const QGeoCameraData &cameraData);
     void updateRequired();
     void sceneChanged();
+    void pixelScaleChanged(qreal pixelScale);
     // void activeMapTypeChanged();
     // void copyrightsChanged(const QImage &copyrightsImage);
     // void copyrightsChanged(const QString &copyrightsHtml);

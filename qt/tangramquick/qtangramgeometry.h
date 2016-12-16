@@ -67,9 +67,11 @@ public slots:
 
 protected:
     virtual void initGeometry();
+    virtual bool isInteractive();
     int m_markerId;
+    bool m_clickable;
     Tangram::Map *m_tangramMap;
-    QTangramGeometryProperties* m_properties;
+    QTangramGeometryProperties *m_properties;
     QTangramMap *m_map;
 
 protected slots:
@@ -78,7 +80,6 @@ protected slots:
 private:
     bool m_visible;
     int m_drawOrder;
-    bool m_clickable;
 };
 
 #endif // QTANGRAMGEOMETRY_H

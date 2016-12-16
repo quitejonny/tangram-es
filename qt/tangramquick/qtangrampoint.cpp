@@ -1,6 +1,7 @@
 #include "qtangrampoint.h"
 #include <QDebug>
 #include <QVariant>
+#include <QtMath>
 #include "util/types.h"
 #include "qtangrammap.h"
 #include "tangram.h"
@@ -40,6 +41,21 @@ void QTangramPointProperties::setSize(const QVariant &size)
 QVariant QTangramPointProperties::size() const
 {
     return m_size;
+}
+
+void QTangramPointProperties::setRotation(const qreal rotation)
+{
+    qreal degrees = qRadiansToDegrees(rotation);
+    if (qAbs(degrees - m_rotation) < 1e-6)
+        return;
+
+    m_rotation = degrees;
+    setStyling(QStringLiteral("angle"), QVariant::fromValue(m_rotation));
+}
+
+qreal QTangramPointProperties::rotation() const
+{
+    return qDegreesToRadians(m_rotation);
 }
 
 void QTangramPointProperties::updateProperty(QString key)
@@ -107,15 +123,27 @@ void QTangramPoint::setMap(QTangramMap *map)
     QTangramGeometry::setMap(map);
 }
 
+bool QTangramPoint::isInteractive()
+{
+    return m_clickable || m_draggable;
+}
+
 void QTangramPoint::setDraggable(bool draggable)
 {
     if (draggable == m_draggable)
         return;
 
+    bool interactive = isInteractive();
     m_draggable = draggable;
     if (m_markerId != -1)
         m_map->setDraggable(this, m_draggable);
     emit draggableChanged();
+
+    if (interactive != isInteractive()) {
+        m_properties->setStyling(QStringLiteral("interactive"),
+                                 QVariant::fromValue(isInteractive()));
+        setStyling();
+    }
 }
 
 bool QTangramPoint::draggable()

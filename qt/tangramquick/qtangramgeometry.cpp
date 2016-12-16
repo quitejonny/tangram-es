@@ -9,6 +9,7 @@
 QTangramGeometryProperties::QTangramGeometryProperties(QObject *parent)
     : QObject(parent)
 {
+    setStyling(QStringLiteral("interactive"), QVariant::fromValue(false));
 }
 
 void QTangramGeometryProperties::setStyling(QString key, QVariant value)
@@ -48,11 +49,11 @@ void QTangramGeometryProperties::updateProperty(QString key)
 QTangramGeometry::QTangramGeometry(QObject *parent, QTangramGeometryProperties *properties)
     : QObject(parent),
       m_markerId(-1),
+      m_clickable(false),
       m_properties(properties),
       m_map(0),
       m_visible(true),
-      m_drawOrder(-1),
-      m_clickable(false)
+      m_drawOrder(-1)
 {
     if (!properties)
         m_properties = new QTangramGeometryProperties(parent);
@@ -64,7 +65,6 @@ void QTangramGeometry::setVisible(bool visible)
     if (m_visible == visible)
         return;
 
-    m_visible = visible;
     if (m_map) {
         m_tangramMap->markerSetVisible(m_markerId, m_visible);
     }
@@ -115,6 +115,11 @@ void QTangramGeometry::setMap(QTangramMap *map)
     }
 }
 
+bool QTangramGeometry::isInteractive()
+{
+    return m_clickable;
+}
+
 QTangramMap *QTangramGeometry::map()
 {
     return m_map;
@@ -140,10 +145,17 @@ void QTangramGeometry::setClickable(bool clickable)
     if (clickable == m_clickable)
         return;
 
+    bool interactive = isInteractive();
     m_clickable = clickable;
     if (m_markerId != -1)
         m_map->setClickable(this, m_clickable);
     emit clickableChanged();
+
+    if (interactive != isInteractive()) {
+        m_properties->setStyling(QStringLiteral("interactive"),
+                                 QVariant::fromValue(isInteractive()));
+        setStyling();
+    }
 }
 
 bool QTangramGeometry::clickable()

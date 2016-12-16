@@ -109,13 +109,16 @@ void QTangramMapController::setAltitude(qreal altitude)
     return;
 }
 
-void QTangramMapController::setRoll(qreal roll)
+void QTangramMapController::setRotation(qreal rotation)
 {
-    Q_UNUSED(roll)
-    return;
+    if (qAbs(rotation - this->rotation()) < 1e-6)
+        return;
+
+    m_tangramObj->setRotation(rotation);
+    emit rotationChanged(rotation);
 }
 
-qreal QTangramMapController::roll() const
+qreal QTangramMapController::rotation() const
 {
-    return -1;
+    return (qreal)m_tangramObj->getRotation();
 }

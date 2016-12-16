@@ -16,7 +16,7 @@ class QTangramMapController : public QObject
     Q_PROPERTY(QGeoCoordinate center READ center WRITE setCenter NOTIFY centerChanged)
     Q_PROPERTY(qreal bearing READ bearing WRITE setBearing NOTIFY bearingChanged)
     Q_PROPERTY(qreal tilt READ tilt WRITE setTilt NOTIFY tiltChanged)
-    Q_PROPERTY(qreal roll READ roll WRITE setRoll NOTIFY rollChanged)
+    Q_PROPERTY(qreal rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
     Q_PROPERTY(qreal zoom READ zoom WRITE setZoom NOTIFY zoomChanged)
 
 public:
@@ -36,8 +36,8 @@ public:
     qreal tilt() const;
     void setTilt(qreal tilt);
 
-    qreal roll() const;
-    void setRoll(qreal roll);
+    qreal rotation() const;
+    void setRotation(qreal rotation);
 
     qreal zoom() const;
     void setZoom(qreal zoom);
@@ -48,7 +48,7 @@ Q_SIGNALS:
     void centerChanged(const QGeoCoordinate &center);
     void bearingChanged(qreal bearing);
     void tiltChanged(qreal tilt);
-    void rollChanged(qreal roll);
+    void rotationChanged(qreal rotation);
     void zoomChanged(qreal zoom);
 
 private:

@@ -21,53 +21,59 @@ class QDeclarativeTangramMap : public QQuickFramebufferObject
     Q_INTERFACES(QQmlParserStatus)
     Q_PROPERTY(QUrl sceneConfiguration READ sceneConfiguration WRITE setSceneConfiguration NOTIFY sceneConfigurationChanged)
     Q_PROPERTY(QGeoCoordinate center READ center WRITE setCenter NOTIFY centerChanged)
-    Q_PROPERTY(int moveAnimationDuration READ moveAnimationDuration WRITE setMoveAnimationDuration NOTIFY moveAnimationDurationChanged)
     Q_PROPERTY(qreal heading READ heading WRITE setHeading NOTIFY headingChanged)
     Q_PROPERTY(qreal zoomLevel READ zoomLevel WRITE setZoomLevel NOTIFY zoomLevelChanged)
-    Q_PROPERTY(float tilt READ tilt WRITE setTilt NOTIFY tiltChanged)
+    Q_PROPERTY(qreal tilt READ tilt WRITE setTilt NOTIFY tiltChanged)
+    Q_PROPERTY(qreal rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
     Q_PROPERTY(bool continuousRendering READ continuousRendering WRITE setContinuousRendering NOTIFY continuousRenderingChanged)
+    Q_PROPERTY(qreal pixelScale READ pixelScale WRITE setPixelScale NOTIFY pixelScaleChanged)
 public:
     explicit QDeclarativeTangramMap(QQuickItem *parent = 0);
     ~QDeclarativeTangramMap();
 
+    void setZoomLevel(const qreal zoomLevel);
     qreal zoomLevel() const;
 
     void setCenter(const QGeoCoordinate &center);
     QGeoCoordinate center() const;
 
-    Renderer *createRenderer() const;
-
+    void setSceneConfiguration(const QUrl &scene);
     QUrl sceneConfiguration() const;
+
+    void setHeading(const qreal heading);
     qreal heading() const;
-    float tilt() const;
-    int moveAnimationDuration() const;
+
+    void setTilt(const qreal tilt);
+    qreal tilt() const;
+
+    void setContinuousRendering(const bool continuousRendering);
     bool continuousRendering() const;
+
+    void setRotation(const qreal rotation);
+    qreal rotation() const;
+
+    void setPixelScale(const qreal pixelScale);
+    qreal pixelScale() const;
 
     Q_INVOKABLE void removeMapItem(QTangramGeometry *item);
     Q_INVOKABLE void addMapItem(QTangramGeometry *item);
 
-
-public slots:
-    void setZoomLevel(qreal zoomLevel);
-    void setSceneConfiguration(const QUrl scene);
-    void setHeading(const qreal heading);
-    void setTilt(const float tilt);
-    void setMoveAnimationDuration(const int duration);
-    void setContinuousRendering(const bool continuousRendering);
+    Renderer *createRenderer() const;
 
     // TODO: The documents uses a comma separated list on path. Maybe change
     // the to QMap<QString, QString>. But how will that work in QML?
     Q_INVOKABLE void queueSceneUpdate(const QString path, const QString value);
     Q_INVOKABLE void applySceneUpdates();
 
-signals:
+Q_SIGNALS:
     void sceneConfigurationChanged();
     void centerChanged(const QGeoCoordinate &center);
-    void moveAnimationDurationChanged();
     void headingChanged();
     void zoomLevelChanged(qreal);
     void tiltChanged(qreal);
+    void rotationChanged(qreal rotation);
     void continuousRenderingChanged(bool);
+    void pixelScaleChanged(qreal pixelScale);
 
 protected:
     bool event(QEvent *ev);
@@ -85,8 +91,12 @@ protected:
 private:
     void setMap(QTangramMap* map);
 
-private slots:
+private Q_SLOTS:
     void populateMap();
+    void mapZoomLevelChanged(qreal zoom);
+    void mapTiltChanged(qreal tilt);
+    void mapRotationChanged(qreal rotation);
+    void mapPixelScaleChanged(qreal pixelScale);
 
 private:
     enum SyncState {
@@ -101,10 +111,11 @@ private:
 
     QUrl m_sceneUrl;
     QGeoCoordinate m_center;
-    int m_moveAnimationDuration;
     qreal m_heading;
-    float m_zoomLevel;
-    float m_tilt;
+    qreal m_zoomLevel;
+    qreal m_tilt;
+    qreal m_rotation;
+    qreal m_pixelScale;
     bool m_continuousRendering;
 
     int m_syncState = NothingNeedsSync;
@@ -142,8 +153,7 @@ private:
     QGeoCoordinate m_center;
     qreal m_heading;
     QSize m_size;
-    float m_tilt;
-    int m_moveAnimationDuration;
+    qreal m_tilt;
     QTangramMap* m_map;
 };
 

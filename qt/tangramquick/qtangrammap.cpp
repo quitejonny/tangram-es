@@ -48,6 +48,20 @@ QUrl QTangramMap::scene()
     return m_scene;
 }
 
+void QTangramMap::setPixelScale(qreal pixelScale)
+{
+    if (qAbs(pixelScale - this->pixelScale()) < 1e-6)
+        return;
+
+    m_tangramMap->setPixelScale(pixelScale);
+    emit pixelScaleChanged(pixelScale);
+}
+
+qreal QTangramMap::pixelScale()
+{
+    return (qreal)m_tangramMap->getPixelScale();
+}
+
 QTangramMapController* QTangramMap::mapController()
 {
     return m_controller;

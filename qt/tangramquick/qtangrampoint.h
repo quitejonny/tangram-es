@@ -14,6 +14,7 @@ class QTangramPointProperties : public QTangramGeometryProperties
 
     Q_PROPERTY(QVariant size READ size WRITE setSize NOTIFY sizeChanged)
     Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
+    Q_PROPERTY(qreal rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
 
 public:
     explicit QTangramPointProperties(QObject *parent = 0);
@@ -24,9 +25,13 @@ public:
     void setSize(const QVariant &size);
     QVariant size() const;
 
+    void setRotation(const qreal);
+    qreal rotation() const;
+
 Q_SIGNALS:
     void sizeChanged();
     void colorChanged();
+    void rotationChanged();
 
 protected:
     virtual void updateProperty(QString key);
@@ -34,6 +39,7 @@ protected:
 private:
     QVariant m_size;
     QColor m_color;
+    qreal m_rotation;
 };
 
 class QTangramPoint : public QTangramGeometry
@@ -65,6 +71,7 @@ public slots:
 
 protected:
     virtual void initGeometry();
+    virtual bool isInteractive();
 
 private:
     QGeoCoordinate m_coordinate;
