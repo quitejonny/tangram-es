@@ -20,6 +20,13 @@
 #include <QWindow>
 
 #define NUM_WORKERS 3
+
+#define DEFAULT "fonts/NotoSans-Regular.ttf"
+#define FONT_AR "fonts/NotoNaskh-Regular.ttf"
+#define FONT_HE "fonts/NotoSansHebrew-Regular.ttf"
+#define FONT_JA "fonts/DroidSansJapanese.ttf"
+#define FALLBACK "fonts/DroidSansFallback.ttf"
+
 QOpenGLExtraFunctions *__qt_gl_funcs;
 
 static std::string s_resourceRoot;
@@ -101,10 +108,14 @@ std::string stringFromFile(const char* _path) {
 
 unsigned char* bytesFromFile(const char* _path, size_t& _size) {
 
-    std::ifstream resource(_path, std::ifstream::ate | std::ifstream::binary);
+    std::string path = _path;
+    std::string start = "/";
+    if (path.compare(0, start.length(), start) == 0)
+        path = "." + path;
+    std::ifstream resource(path, std::ifstream::ate | std::ifstream::binary);
 
     if(!resource.is_open()) {
-        logMsg("Failed to read file at path: %s\n", _path);
+        logMsg("Failed to read file at path: %s\n", path);
         _size = 0;
         return nullptr;
     }
@@ -121,15 +132,34 @@ unsigned char* bytesFromFile(const char* _path, size_t& _size) {
     return reinterpret_cast<unsigned char *>(cdata);
 }
 
-// No system fonts implementation (yet!)
-std::string systemFontPath(const std::string& _name, const std::string& _weight,
-                           const std::string& _face) {
-    return "";
+FontSourceHandle getFontHandle(const char* _path) {
+    FontSourceHandle fontSourceHandle = [_path](size_t* _size) -> unsigned char* {
+        logMsg("Loading font %s", _path);
+
+        auto cdata = bytesFromFile(_path, *_size);
+
+        return cdata;
+    };
+
+    return fontSourceHandle;
 }
 
-// No system fonts fallback implementation (yet!)
-std::string systemFontFallbackPath(int _importance, int _weightHint) {
-    return "";
+std::vector<FontSourceHandle> systemFontFallbacksHandle() {
+    std::vector<FontSourceHandle> handles;
+
+    handles.push_back(getFontHandle(DEFAULT));
+    handles.push_back(getFontHandle(FONT_AR));
+    handles.push_back(getFontHandle(FONT_HE));
+    handles.push_back(getFontHandle(FONT_JA));
+    handles.push_back(getFontHandle(FALLBACK));
+
+    return handles;
+}
+
+// System fonts are not available on linux yet, we will possibly use FontConfig in the future, for
+// references see the tizen platform implementation of system fonts
+unsigned char* systemFont(const std::string& _name, const std::string& _weight, const std::string& _face, size_t* _size) {
+    return nullptr;
 }
 
 bool startUrlRequest(const std::string& _url, UrlCallback _callback) {
@@ -166,6 +196,7 @@ void finishUrlRequests() {
     for(auto& worker : s_Workers) {
         worker.join();
     }
+    s_urlTaskQueue.clear();
 }
 
 void setCurrentThreadPriority(int priority){

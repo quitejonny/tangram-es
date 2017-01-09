@@ -108,8 +108,8 @@ public:
     void handleMouseUngrabEvent();
     void handleTouchUngrabEvent();
 
-    void onClickedFeatures(const std::vector<Tangram::TouchItem> &items);
-    void onDragFeatures(const std::vector<Tangram::TouchItem> &items);
+    void onClickedFeatures(const Tangram::FeaturePickResult *result);
+    void onDragFeatures(const Tangram::FeaturePickResult *result);
 
     void setMinimumZoomLevel(qreal min);
     qreal minimumZoomLevel() const;
