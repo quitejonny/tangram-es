@@ -6,7 +6,6 @@
 #include <list>
 #include <QVariant>
 
-#include "urlWorker.h"
 #include "platform_qt.h"
 #include "platform_gl.h"
 #include <QOpenGLFunctions>
@@ -19,7 +18,9 @@
 #include <QObject>
 #include <QWindow>
 
-#define NUM_WORKERS 3
+#include "contentdownloader.h"
+
+#define NUM_WORKERS 5
 
 #define DEFAULT "fonts/NotoSans-Regular.ttf"
 #define FONT_AR "fonts/NotoNaskh-Regular.ttf"
@@ -31,10 +32,9 @@ QOpenGLExtraFunctions *__qt_gl_funcs;
 
 static std::string s_resourceRoot;
 
-static UrlWorker s_Workers[NUM_WORKERS];
-static std::list<std::unique_ptr<UrlTask>> s_urlTaskQueue;
-
 static QObject *s_quickItem = NULL;
+
+static ContentDownloader *s_downloader = NULL;
 
 void setQtGlFunctions(QOpenGLContext *context)
 {
@@ -48,20 +48,6 @@ void logMsg(const char* fmt, ...) {
     va_start(args, fmt);
     vfprintf(stderr, fmt, args);
     va_end(args);
-}
-
-void processNetworkQueue() {
-    // attach workers to NetWorkerData
-    auto taskItr = s_urlTaskQueue.begin();
-    for(auto& worker : s_Workers) {
-        if(taskItr == s_urlTaskQueue.end()) {
-            break;
-        }
-        if(worker.isAvailable()) {
-            worker.perform(std::move(*taskItr));
-            taskItr = s_urlTaskQueue.erase(taskItr);
-        }
-    }
 }
 
 void requestRender() {
@@ -132,26 +118,14 @@ unsigned char* bytesFromFile(const char* _path, size_t& _size) {
     return reinterpret_cast<unsigned char *>(cdata);
 }
 
-FontSourceHandle getFontHandle(const char* _path) {
-    FontSourceHandle fontSourceHandle = [_path](size_t* _size) -> unsigned char* {
-        logMsg("Loading font %s", _path);
-
-        auto cdata = bytesFromFile(_path, *_size);
-
-        return cdata;
-    };
-
-    return fontSourceHandle;
-}
-
 std::vector<FontSourceHandle> systemFontFallbacksHandle() {
     std::vector<FontSourceHandle> handles;
 
-    handles.push_back(getFontHandle(DEFAULT));
-    handles.push_back(getFontHandle(FONT_AR));
-    handles.push_back(getFontHandle(FONT_HE));
-    handles.push_back(getFontHandle(FONT_JA));
-    handles.push_back(getFontHandle(FALLBACK));
+    handles.emplace_back(DEFAULT);
+    handles.emplace_back(FONT_AR);
+    handles.emplace_back(FONT_HE);
+    handles.emplace_back(FONT_JA);
+    handles.emplace_back(FALLBACK);
 
     return handles;
 }
@@ -163,14 +137,8 @@ unsigned char* systemFont(const std::string& _name, const std::string& _weight, 
 }
 
 bool startUrlRequest(const std::string& _url, UrlCallback _callback) {
-    std::unique_ptr<UrlTask> task(new UrlTask(_url, _callback));
-    for(auto& worker : s_Workers) {
-        if(worker.isAvailable()) {
-            worker.perform(std::move(task));
-            return true;
-        }
-    }
-    s_urlTaskQueue.push_back(std::move(task));
+    s_downloader->addTask(_url, _callback);
+
     return true;
 
     /*if (widget) {
@@ -179,24 +147,11 @@ bool startUrlRequest(const std::string& _url, UrlCallback _callback) {
 }
 
 void cancelUrlRequest(const std::string& _url) {
-
-    // Only clear this request if a worker has not started operating on it!!
-    // otherwise it gets too convoluted with curl!
-    auto itr = s_urlTaskQueue.begin();
-    while(itr != s_urlTaskQueue.end()) {
-        if((*itr)->url == _url) {
-            itr = s_urlTaskQueue.erase(itr);
-        } else {
-            itr++;
-        }
-    }
+    s_downloader->cancelTask(_url);
 }
 
 void finishUrlRequests() {
-    for(auto& worker : s_Workers) {
-        worker.join();
-    }
-    s_urlTaskQueue.clear();
+    s_downloader->finishTasks();
 }
 
 void setCurrentThreadPriority(int priority){
@@ -211,8 +166,11 @@ void setCurrentThreadPriority(int priority){
 
 void registerItem(QObject *quickItem)
 {
-    if (!s_quickItem)
+    if (!s_quickItem) {
         s_quickItem = quickItem;
+        s_downloader = new ContentDownloader(quickItem);
+        s_downloader->setMaximumWorkers(NUM_WORKERS);
+    }
 }
 
 void initGLExtensions()

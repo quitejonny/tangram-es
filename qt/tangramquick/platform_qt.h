@@ -8,8 +8,6 @@
 
 #define TANGRAM_REQ_RENDER_EVENT_TYPE   (QEvent::Type)(QEvent::User + 1)
 
-void processNetworkQueue();
-
 void finishUrlRequests();
 
 void registerItem(QObject *quickItem);

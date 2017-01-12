@@ -345,37 +345,31 @@ void QTangramGestureArea::update()
     actionStateMachine();
 }
 
-void QTangramGestureArea::onDragFeatures(const Tangram::FeaturePickResult *result)
+void QTangramGestureArea::onDragFeatures(const Tangram::MarkerPickResult *result)
 {
     if (!result || m_touchPointState != touchPoints1)
         return;
 
-    int id = result->properties->getNumber("id");
-    auto kind = result->properties->getString("kind");
-    if (kind == "dynamicMarker") {
-        for (auto &marker : m_map->m_draggableItems) {
-            if (id == marker->markerId()) {
-                m_drag.m_item = marker;
-                m_actionState = actionDownItem;
-                break;
-            }
+    int id = result->id;
+    for (auto &marker : m_map->m_draggableItems) {
+        if (id == marker->markerId()) {
+            m_drag.m_item = marker;
+            m_actionState = actionDownItem;
+            break;
         }
     }
 }
 
-void QTangramGestureArea::onClickedFeatures(const Tangram::FeaturePickResult *result)
+void QTangramGestureArea::onClickedFeatures(const Tangram::MarkerPickResult *result)
 {
     if (!result)
         return;
 
-    int id = result->properties->getNumber("id");
-    auto kind = result->properties->getString("kind");
-    if (kind == "dynamicMarker") {
-        for (auto &marker : m_declarativeMap->m_map->m_clickableItems) {
-            if (id == marker->markerId()) {
-                emit marker->clicked();
-                break;
-            }
+    int id = result->id;
+    for (auto &marker : m_declarativeMap->m_map->m_clickableItems) {
+        if (id == marker->markerId()) {
+            emit marker->clicked();
+            break;
         }
     }
 }
@@ -639,7 +633,7 @@ void QTangramGestureArea::actionStateMachine()
         if (m_enabled && m_touchPointState == touchPoints1) {
             m_actionState = actionDown;
             auto pos = m_allPoints.first().pos();
-            m_map->tangramObject()->pickFeatureAt(pos.x(), pos.y(),
+            m_map->tangramObject()->pickMarkerAt(pos.x(), pos.y(),
                                                    std::bind(&QTangramGestureArea::onDragFeatures,
                                                              this, std::placeholders::_1));
         }
@@ -683,7 +677,7 @@ void QTangramGestureArea::actionStateMachine()
     case actionClick:
         m_actionState = actionInactive;
         // mouse should have been released without paning or pinch. So this is a CLICK event!
-        m_map->tangramObject()->pickFeatureAt(m_lastPos.x(), m_lastPos.y(),
+        m_map->tangramObject()->pickMarkerAt(m_lastPos.x(), m_lastPos.y(),
                                                std::bind(&QTangramGestureArea::onClickedFeatures,
                                                          this, std::placeholders::_1));
         break;

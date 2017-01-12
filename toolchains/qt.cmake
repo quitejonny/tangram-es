@@ -91,7 +91,6 @@ set(PLUGIN_NAME tangramquick) # in order to have libtangramquick.so
 add_library(${PLUGIN_NAME} SHARED
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/tangramquick_plugin.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/tangramquick.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/urlWorker.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangramgesturearea.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammap.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammapcontroller.cpp
@@ -99,11 +98,12 @@ add_library(${PLUGIN_NAME} SHARED
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrampolyline.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrampoint.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_gl.cpp
+  ${CMAKE_SOURCE_DIR}/qt/tangramquick/contentdownloader.cpp
   ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_qt.cpp)
 
 target_link_libraries(${PLUGIN_NAME}
   PUBLIC
-  Qt5::Core Qt5::Qml Qt5::Quick Qt5::Location
+  Qt5::Core Qt5::Qml Qt5::Quick Qt5::Location Qt5::Network
   #"-Wl,-whole-archive"
   ${CORE_LIBRARY}
   #"-Wl,-no-whole-archive")

@@ -133,6 +133,8 @@ void QTangramGeometry::setStyling()
         QByteArray stylings = doc.toJson(QJsonDocument::Compact);
         qDebug() << Q_FUNC_INFO << stylings;
         m_tangramMap->markerSetStyling(m_markerId, stylings.toStdString().c_str());
+        // workaround: if styling of marker changes, the marker may not be shown
+        m_tangramMap->handlePanGesture(0, 0, 0, 0);
     }
 }
 
