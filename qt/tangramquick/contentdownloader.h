@@ -15,7 +15,6 @@ struct DownloadTask {
 
     const std::string url;
     UrlCallback callback;
-    QNetworkRequest request;
 
     bool operator=(const DownloadTask &other) {
         return other.url == this->url;
@@ -30,16 +29,21 @@ public:
     explicit ContentDownloader(QObject *parent = 0);
 
     void addTask(const std::string &url, const UrlCallback &callback);
-    void processQueue();
     void cancelTask(const std::string &url);
     void finishTasks();
 
     void setMaximumWorkers(int maximumWorkers);
     int maximumWorkers();
 
+signals:
+    void updateQueue();
+
 public slots:
     void processReply();
     void processError(QNetworkReply::NetworkError error);
+
+private slots:
+    void processQueue();
 
 private:
     int m_maximumWorkers;

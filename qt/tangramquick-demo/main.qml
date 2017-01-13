@@ -63,27 +63,15 @@ Window {
             coordinate: centerCoordinate
             visual.size: "32px"
             visual.style: "icons"
+            draggable: true
+            clickable: true
             Component.onCompleted: {
                 visual.setStyling("sprite", "train")
             }
+            onClicked: {
+                console.debug("icon was clicked.")
+            }
         }
-
-        Behavior on heading {
-            NumberAnimation { duration: 1000; easing.type: Easing.Linear }
-        }
-        Timer {
-            interval: 1000
-            repeat: true
-            running: true
-            onTriggered: parent.heading+=20
-        }
-
-        transform: [
-            Rotation { id: rotation; axis.x: 0; axis.z: 0; axis.y: 1; angle: 0; origin.x: map.width / 2; origin.y: map.height / 2; },
-            Translate { id: txOut; x: -map.width / 2; y: -map.height / 2 },
-            Scale { id: scale; },
-            Translate { id: txIn; x: map.width / 2; y: map.height / 2 }
-        ]
 
         Keys.onPressed: {
             if (event.key === Qt.Key_P) {
@@ -102,32 +90,5 @@ Window {
             }
         }
     }
-
-    // Just to show something interesting
-    // SequentialAnimation {
-    //     id:ani
-    //     PauseAnimation { duration: 2000 }
-    //     ParallelAnimation {
-    //         NumberAnimation { target: scale; property: "xScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
-    //         NumberAnimation { target: scale; property: "yScale"; to: 0.6; duration: 2000; easing.type: Easing.InOutBack }
-    //     }
-    //     NumberAnimation { target: rotation; property: "angle"; to: 80; duration: 1000; easing.type: Easing.InOutCubic }
-    //     NumberAnimation { target: rotation; property: "angle"; to: -80; duration: 1000; easing.type: Easing.InOutCubic }
-    //     NumberAnimation { target: rotation; property: "angle"; to: 0; duration: 1000; easing.type: Easing.InOutCubic }
-    //     NumberAnimation { target: map; property: "opacity"; to: 0.3; duration: 1000; easing.type: Easing.InOutCubic }
-    //     PauseAnimation { duration: 1000 }
-    //     NumberAnimation { target: map; property: "opacity"; to: 1.0; duration: 1000; easing.type: Easing.InOutCubic }
-    //     ParallelAnimation {
-    //         NumberAnimation { target: scale; property: "xScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
-    //         NumberAnimation { target: scale; property: "yScale"; to: 1; duration: 1000; easing.type: Easing.InOutBack }
-    //     }
-    //     NumberAnimation { target: map; property: "zoomLevel"; to: 14; duration: 2000; easing.type: Easing.InOutBack }
-    //     NumberAnimation { target: map; property: "zoomLevel"; to: 16; duration: 1000; easing.type: Easing.InOutBack }
-    //     NumberAnimation { target: map; property: "tilt"; to: 45; duration: 2000; easing.type: Easing.InOutBack }
-    //     NumberAnimation { target: map; property: "tilt"; to: 0; duration: 1000; easing.type: Easing.InOutBack }
-
-    //     running: true
-    //     loops: Animation.Infinite
-    // }
 }
 

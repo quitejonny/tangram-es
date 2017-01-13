@@ -6,25 +6,23 @@ ContentDownloader::ContentDownloader(QObject *parent)
       m_maximumWorkers(3),
       m_networkManager(parent)
 {
-
+    connect(this, SIGNAL(updateQueue()), this, SLOT(processQueue()));
 }
 
 void ContentDownloader::addTask(const std::string &url, const UrlCallback &callback)
 {
-    QNetworkRequest request(QUrl(QString::fromStdString(url)));
-    m_networkManager.get(request);
-
-    std::shared_ptr<DownloadTask> task(new DownloadTask{url, callback, std::move(request)});
+    std::shared_ptr<DownloadTask> task(new DownloadTask{url, callback});
     m_taskQueue.enqueue(task);
 
-    processQueue();
+    emit updateQueue();
 }
 
 void ContentDownloader::processQueue()
 {
     while (!m_taskQueue.isEmpty() && m_replies.count() < m_maximumWorkers) {
         auto task = m_taskQueue.dequeue();
-        QNetworkReply *reply = m_networkManager.get(task->request);
+        QNetworkRequest request(QUrl(QString::fromStdString(task->url)));
+        QNetworkReply *reply = m_networkManager.get(request);
         connect(reply, SIGNAL(finished()), this, SLOT(processReply()));
         connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(processError(QNetworkReply::NetworkError)));
         m_replies.insert(reply, task);
@@ -93,6 +91,6 @@ void ContentDownloader::processReply()
         task->callback(std::move(content));
     }
 
-    processQueue();
+    emit updateQueue();
     reply->deleteLater();
 }
