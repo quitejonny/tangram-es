@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QVariant>
 #include <QtMath>
+#include <QImage>
 #include "util/types.h"
 #include "qtangrammap.h"
 #include "tangram.h"
@@ -121,6 +122,7 @@ void QTangramPoint::setMap(QTangramMap *map)
         m_map->setDraggable(this, false);
 
     QTangramGeometry::setMap(map);
+    setImageData();
 }
 
 bool QTangramPoint::isInteractive()
@@ -146,7 +148,37 @@ void QTangramPoint::setDraggable(bool draggable)
     }
 }
 
-bool QTangramPoint::draggable()
+bool QTangramPoint::draggable() const
 {
     return m_draggable;
+}
+
+void QTangramPoint::setImageSource(const QString &imageSource)
+{
+    if (m_imageSource == imageSource)
+        return;
+
+    m_imageSource = imageSource;
+    emit imageSourceChanged();
+    setImageData();
+}
+
+QString QTangramPoint::imageSource() const
+{
+    return m_imageSource;
+}
+
+void QTangramPoint::setImageData()
+{
+    if (m_markerId == -1)
+        return;
+
+    QString source = m_imageSource.startsWith("qrc:") ? m_imageSource.remove(0, 3) : m_imageSource;
+    QImage image(source);
+    if (image.isNull())
+        return;
+
+    image = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
+    const uint *data = reinterpret_cast<const uint*>(image.constBits());
+    m_tangramMap->markerSetBitmap(m_markerId, image.width(), image.height(), data);
 }

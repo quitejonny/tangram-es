@@ -45,7 +45,6 @@ LIBS += ../../build/linux/lib/libicucommon.a
 SOURCES += \
     tangramquick_plugin.cpp \
     tangramquick.cpp \
-    urlWorker.cpp \
     platform_qt.cpp \
     platform_gl.cpp \
     qtangramgesturearea.cpp \
@@ -53,12 +52,12 @@ SOURCES += \
     qtangrammapcontroller.cpp \
     qtangramgeometry.cpp \
     qtangrampolyline.cpp \
-    qtangrampoint.cpp
+    qtangrampoint.cpp \
+    contentdownloader.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
     tangramquick.h \
-    urlWorker.h \
     platform_qt.h \
     platform_gl.h \
     qtangramgesturearea.h \
@@ -66,7 +65,8 @@ HEADERS += \
     qtangrammapcontroller.h \
     qtangramgeometry.h \
     qtangrampolyline.h \
-    qtangrampoint.h
+    qtangrampoint.h \
+    contentdownloader.h
 
 DISTFILES = qmldir
 

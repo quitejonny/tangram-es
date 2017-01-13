@@ -59,6 +59,9 @@ void QDeclarativeTangramMap::setMap(QTangramMap *map)
         m_map->mapController()->setCenter(m_center);
     if (m_zoomLevel != -1)
         m_map->mapController()->setZoom(m_zoomLevel);
+    m_map->setPixelScale(m_pixelScale);
+    m_map->mapController()->setRotation(m_rotation);
+    m_map->mapController()->setTilt(m_tilt);
     m_tangramMapInitialized = true;
 }
 
@@ -226,7 +229,6 @@ bool QDeclarativeTangramMap::continuousRendering() const
 bool QDeclarativeTangramMap::event(QEvent *e)
 {
     if (e->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {
-        processNetworkQueue();
         update();
         return true;
     }
