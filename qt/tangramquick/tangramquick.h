@@ -8,7 +8,9 @@
 #include <QMutex>
 #include <data/clientGeoJsonSource.h>
 #include <QGeoCoordinate>
-#include "tangram.h"
+
+#include <QScopedPointer>
+#include <QOpenGLShaderProgram>
 
 class TangramQuickRenderer;
 class QTangramMap;
@@ -88,10 +90,8 @@ protected:
 
     void componentComplete() Q_DECL_OVERRIDE;
 
-private:
-    void setMap(QTangramMap* map);
-
 private Q_SLOTS:
+    void updateScene();
     void populateMap();
     void mapZoomLevelChanged(qreal zoom);
     void mapTiltChanged(qreal tilt);
@@ -121,7 +121,6 @@ private:
     int m_syncState = NothingNeedsSync;
     QTangramMap* m_map;
     QTangramGestureArea* m_gestureArea;
-    bool m_tangramMapInitialized;
 
     QVector<QTangramGeometry *> m_mapItems;
 
@@ -133,7 +132,7 @@ private:
 class TangramQuickRenderer : public QQuickFramebufferObject::Renderer
 {
 public:
-    TangramQuickRenderer();
+    TangramQuickRenderer(QTangramMap *map);
     virtual ~TangramQuickRenderer();
 
     void render();
@@ -150,11 +149,9 @@ private:
     bool m_useScenePosition;
     QMutex m_renderMutex;
 
-    QGeoCoordinate m_center;
-    qreal m_heading;
-    QSize m_size;
-    qreal m_tilt;
     QTangramMap* m_map;
+
+    QScopedPointer<QOpenGLShaderProgram> m_program;
 };
 
 QML_DECLARE_TYPE(QDeclarativeTangramMap)

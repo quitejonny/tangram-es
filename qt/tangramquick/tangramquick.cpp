@@ -1,15 +1,11 @@
 #include "tangramquick.h"
 #include <QtGui/QOpenGLFramebufferObject>
-#include <QQuickWindow>
-#include <QMutexLocker>
 
 #include <tangram.h>
-#include <curl/curl.h>
-#include <cstdlib>
+#include <QOpenGLShaderProgram>
 #include <QOpenGLContext>
-#include <QOpenGLFunctions>
+#include <QOpenGLExtraFunctions>
 #include "platform_qt.h"
-#include <QRunnable>
 #include <QDebug>
 #include "qtangrammap.h"
 #include "qtangrammapcontroller.h"
@@ -25,36 +21,35 @@ QDeclarativeTangramMap::QDeclarativeTangramMap(QQuickItem *parent)
       m_tilt(0),
       m_rotation(0),
       m_pixelScale(1),
-      m_map(0),
-      m_gestureArea(new QTangramGestureArea(this)),
-      m_tangramMapInitialized(false)
+      m_map(new QTangramMap(parent)),
+      m_gestureArea(new QTangramGestureArea(this))
 {
     setAcceptedMouseButtons(Qt::AllButtons);
     registerItem((QObject*)this);
     setMirrorVertically(true);
-}
 
-QDeclarativeTangramMap::~QDeclarativeTangramMap()
-{
-}
-
-void QDeclarativeTangramMap::setMap(QTangramMap *map)
-{
-    if (m_map)
-        return;
-    m_map = map;
-    m_gestureArea->setMap(map);
-    connect(m_map, SIGNAL(sceneChanged()), this, SLOT(populateMap()));
+    m_gestureArea->setMap(m_map);
+    connect(m_map, SIGNAL(sceneChanged()), this, SLOT(updateScene()));
     connect(m_map->mapController(), SIGNAL(centerChanged(QGeoCoordinate)),
             this, SIGNAL(centerChanged(QGeoCoordinate)));
     connect(m_map->mapController(), SIGNAL(tiltChanged(qreal)),
             this, SLOT(mapTiltChanged(qreal)));
     connect(m_map->mapController(), SIGNAL(zoomChanged(qreal)),
             this, SLOT(mapZoomLevelChanged(qreal)));
-    connect(map->mapController(), SIGNAL(rotationChanged(qreal)),
+    connect(m_map->mapController(), SIGNAL(rotationChanged(qreal)),
             this, SLOT(mapRotationChanged(qreal)));
     connect(m_map, SIGNAL(pixelScaleChanged(qreal)),
             this, SLOT(mapPixelScaleChanged(qreal)));
+}
+
+QDeclarativeTangramMap::~QDeclarativeTangramMap()
+{
+}
+
+void QDeclarativeTangramMap::updateScene()
+{
+    populateMap();
+
     if (m_center.isValid())
         m_map->mapController()->setCenter(m_center);
     if (m_zoomLevel != -1)
@@ -62,7 +57,6 @@ void QDeclarativeTangramMap::setMap(QTangramMap *map)
     m_map->setPixelScale(m_pixelScale);
     m_map->mapController()->setRotation(m_rotation);
     m_map->mapController()->setTilt(m_tilt);
-    m_tangramMapInitialized = true;
 }
 
 void QDeclarativeTangramMap::mapZoomLevelChanged(qreal zoom)
@@ -99,7 +93,7 @@ void QDeclarativeTangramMap::mapPixelScaleChanged(qreal pixelScale)
 
 QQuickFramebufferObject::Renderer* QDeclarativeTangramMap::createRenderer() const
 {
-    return new TangramQuickRenderer();
+    return new TangramQuickRenderer(m_map);
 }
 
 void QDeclarativeTangramMap::setSceneConfiguration(const QUrl &scene)
@@ -107,12 +101,7 @@ void QDeclarativeTangramMap::setSceneConfiguration(const QUrl &scene)
     if (m_sceneUrl != scene) {
         m_sceneUrl = scene;
         emit sceneConfigurationChanged();
-        if (m_tangramMapInitialized) {
-            if (m_center.isValid())
-                m_map->mapController()->setCenter(m_center);
-            if (m_zoomLevel != -1)
-                m_map->mapController()->setZoom(m_zoomLevel);
-        }
+
         update();
     }
 }
@@ -128,8 +117,7 @@ void QDeclarativeTangramMap::setCenter(const QGeoCoordinate &center)
         return;
 
     m_center = center;
-    if (m_tangramMapInitialized)
-        m_map->mapController()->setCenter(m_center);
+    m_map->mapController()->setCenter(m_center);
     update();
 }
 
@@ -158,8 +146,7 @@ void QDeclarativeTangramMap::setZoomLevel(qreal zoomLevel)
         return;
 
     m_zoomLevel = zoomLevel;
-    if (m_tangramMapInitialized)
-        m_map->mapController()->setZoom(zoomLevel);
+    m_map->mapController()->setZoom(zoomLevel);
     emit zoomLevelChanged(zoomLevel);
 }
 
@@ -174,8 +161,7 @@ void QDeclarativeTangramMap::setTilt(const qreal tilt)
         return;
 
     m_tilt = tilt;
-    if (m_tangramMapInitialized)
-        m_map->mapController()->setTilt(m_tilt);
+    m_map->mapController()->setTilt(m_tilt);
 }
 
 qreal QDeclarativeTangramMap::tilt() const
@@ -189,8 +175,7 @@ void QDeclarativeTangramMap::setRotation(const qreal rotation)
         return;
 
     m_rotation = rotation;
-    if (m_tangramMapInitialized)
-        m_map->mapController()->setRotation(rotation);
+    m_map->mapController()->setRotation(rotation);
 }
 
 qreal QDeclarativeTangramMap::rotation() const
@@ -204,8 +189,7 @@ void QDeclarativeTangramMap::setPixelScale(const qreal pixelScale)
         return;
 
     m_pixelScale = pixelScale;
-    if (m_tangramMapInitialized)
-        m_map->setPixelScale(m_pixelScale);
+    m_map->setPixelScale(m_pixelScale);
 }
 
 qreal QDeclarativeTangramMap::pixelScale() const
@@ -237,60 +221,37 @@ bool QDeclarativeTangramMap::event(QEvent *e)
 
 void QDeclarativeTangramMap::mousePressEvent(QMouseEvent *event)
 {
-    if (m_map)
-        m_gestureArea->handleMousePressEvent(event);
-    else
-        QQuickFramebufferObject::mousePressEvent(event);
+    m_gestureArea->handleMousePressEvent(event);
 }
 
 void QDeclarativeTangramMap::mouseMoveEvent(QMouseEvent *event)
 {
-    if (m_map)
-        m_gestureArea->handleMouseMoveEvent(event);
-    else
-        QQuickFramebufferObject::mouseMoveEvent(event);
+    m_gestureArea->handleMouseMoveEvent(event);
 }
 
 void QDeclarativeTangramMap::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (m_map) {
-        m_gestureArea->handleMouseReleaseEvent(event);
-    } else {
-        QQuickFramebufferObject::mouseReleaseEvent(event);
-    }
+    m_gestureArea->handleMouseReleaseEvent(event);
 }
 
 void QDeclarativeTangramMap::mouseUngrabEvent()
 {
-    if (m_map)
-        m_gestureArea->handleMouseUngrabEvent();
-    else
-        QQuickFramebufferObject::mouseUngrabEvent();
+    m_gestureArea->handleMouseUngrabEvent();
 }
 
 void QDeclarativeTangramMap::touchUngrabEvent()
 {
-    if (m_map) {
-        m_gestureArea->handleTouchUngrabEvent();
-    } else {
-        QQuickFramebufferObject::mouseUngrabEvent();
-    }
+    m_gestureArea->handleTouchUngrabEvent();
 }
 
 void QDeclarativeTangramMap::touchEvent(QTouchEvent *event)
 {
-    if (m_map)
-        m_gestureArea->handleTouchEvent(event);
-    else
-        QQuickFramebufferObject::touchEvent(event);
+    m_gestureArea->handleTouchEvent(event);
 }
 
 void QDeclarativeTangramMap::wheelEvent(QWheelEvent *event)
 {
-    if (m_map)
-        m_gestureArea->handleWheelEvent(event);
-    else
-        QQuickFramebufferObject::wheelEvent(event);
+    m_gestureArea->handleWheelEvent(event);
 }
 
 void QDeclarativeTangramMap::queueSceneUpdate(const QString path, const QString value)
@@ -306,7 +267,7 @@ void QDeclarativeTangramMap::applySceneUpdates()
 
 void QDeclarativeTangramMap::removeMapItem(QTangramGeometry *item)
 {
-    if (!item || !m_map)
+    if (!item)
         return;
 
     item->setMap(0);
@@ -319,18 +280,14 @@ void QDeclarativeTangramMap::addMapItem(QTangramGeometry *item)
     qDebug() << Q_FUNC_INFO;
     if (!item || item->map())
         return;
-    if (m_map) {
-        item->setMap(m_map);
-        m_mapItems.append(item);
-    }
+    item->setMap(m_map);
+    m_mapItems.append(item);
     // emit mapItemsChanged();
 }
 
 void QDeclarativeTangramMap::populateMap()
 {
     qDebug() << Q_FUNC_INFO;
-    if (!m_map)
-        return;
     QObjectList kids = children();
     for (auto &kid : kids) {
         auto *mapItem = qobject_cast<QTangramGeometry *>(kid);
@@ -341,35 +298,32 @@ void QDeclarativeTangramMap::populateMap()
 
 void QDeclarativeTangramMap::componentComplete()
 {
-    populateMap();
     QQuickItem::componentComplete();
 }
 
-TangramQuickRenderer::TangramQuickRenderer()
+TangramQuickRenderer::TangramQuickRenderer(QTangramMap *map)
     : QQuickFramebufferObject::Renderer(),
     m_glInitialized(false),
     m_useScenePosition(false),
-    m_map(0)
+    m_map(map)
 {
-    // Initialize cURL
-    curl_global_init(CURL_GLOBAL_DEFAULT);
-    setQtGlFunctions(QOpenGLContext::currentContext());
-    m_map = new QTangramMap();
-
 }
 
 TangramQuickRenderer::~TangramQuickRenderer()
 {
-    curl_global_cleanup();
 }
 
 void TangramQuickRenderer::initializeGL()
 {
+    m_program.reset(new QOpenGLShaderProgram);
+    m_program->link();
+
+    auto f = QOpenGLContext::currentContext()->extraFunctions();
+    setQtGlFunctions(f);
+
     m_dataSource = std::make_shared<Tangram::ClientGeoJsonSource>("touch", "");
-    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
 
     qDebug() << Q_FUNC_INFO << "Version:" << f->glGetString(GL_VERSION);
-    f->glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     {
         QMutexLocker locker(&m_map->m_mutex);
@@ -383,13 +337,15 @@ void TangramQuickRenderer::initializeGL()
 
 void TangramQuickRenderer::render()
 {
+    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     {
         QMutexLocker locker(&m_map->m_mutex);
         m_map->tangramObject()->update((float)m_elapsedTimer.elapsed() / 100.f);
-        //m_map->update(100.f);
         m_map->tangramObject()->render();
     }
     m_elapsedTimer.restart();
+
+    f->glActiveTexture(GL_TEXTURE0);
 }
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
@@ -397,10 +353,6 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
     QDeclarativeTangramMap *quickMap = static_cast<QDeclarativeTangramMap*>(item);
     if (!quickMap)
         return;
-
-    if (!quickMap->m_map && m_map) {
-        quickMap->setMap(m_map);
-    }
 
     m_useScenePosition = !(quickMap->m_center.isValid() && quickMap->m_zoomLevel != -1);
 

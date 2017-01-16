@@ -36,11 +36,10 @@ static QObject *s_quickItem = NULL;
 
 static ContentDownloader *s_downloader = NULL;
 
-void setQtGlFunctions(QOpenGLContext *context)
+void setQtGlFunctions(QOpenGLExtraFunctions *gl_funcs)
 {
-    __qt_gl_funcs = context->extraFunctions();
+    __qt_gl_funcs = gl_funcs;
     __qt_gl_funcs->initializeOpenGLFunctions();
-    __qt_gl_funcs->glLinkProgram(0);
 }
 
 void logMsg(const char* fmt, ...) {

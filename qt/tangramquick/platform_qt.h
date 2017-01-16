@@ -3,16 +3,17 @@
 
 #include "platform.h"
 #include <QEvent>
-#include <QObject>
-#include <QOpenGLContext>
 
 #define TANGRAM_REQ_RENDER_EVENT_TYPE   (QEvent::Type)(QEvent::User + 1)
+
+class QObject;
+class QOpenGLExtraFunctions;
 
 void finishUrlRequests();
 
 void registerItem(QObject *quickItem);
 
-void setQtGlFunctions(QOpenGLContext* context);
+void setQtGlFunctions(QOpenGLExtraFunctions *gl_funcs);
 
 #endif // PLATFORM_QT_H
 
