@@ -1,4 +1,5 @@
 #include "contentdownloader.h"
+#include <QNetworkRequest>
 #include <QDebug>
 
 ContentDownloader::ContentDownloader(QObject *parent)
@@ -6,15 +7,18 @@ ContentDownloader::ContentDownloader(QObject *parent)
       m_maximumWorkers(3),
       m_networkManager(parent)
 {
-    connect(this, SIGNAL(updateQueue()), this, SLOT(processQueue()));
+    qRegisterMetaType<std::string>();
+    qRegisterMetaType<UrlCallback>();
+    connect(this, SIGNAL(addTask(std::string,UrlCallback)), this, SLOT(queueTask(std::string,UrlCallback)));
+    connect(this, SIGNAL(cancelTask(std::string)), this, SLOT(onTaskCanceled(std::string)));
+    connect(this, SIGNAL(finishTasks()), this, SLOT(onTasksFinished()));
 }
 
-void ContentDownloader::addTask(const std::string &url, const UrlCallback &callback)
+void ContentDownloader::queueTask(const std::string &url, const UrlCallback &callback)
 {
     std::shared_ptr<DownloadTask> task(new DownloadTask{url, callback});
     m_taskQueue.enqueue(task);
-
-    emit updateQueue();
+    processQueue();
 }
 
 void ContentDownloader::processQueue()
@@ -31,13 +35,14 @@ void ContentDownloader::processQueue()
 
 void ContentDownloader::processError(QNetworkReply::NetworkError error)
 {
-    qDebug() << error;
+    if (error != QNetworkReply::OperationCanceledError)
+        qDebug() << Q_FUNC_INFO << error;
     auto *reply = qobject_cast<QNetworkReply *>(sender());
     m_replies.remove(reply);
     reply->deleteLater();
 }
 
-void ContentDownloader::cancelTask(const std::string &url)
+void ContentDownloader::onTaskCanceled(const std::string &url)
 {
     for (int i = 0; i < m_taskQueue.count(); ++i) {
         if (m_taskQueue.at(i)->url == url) {
@@ -57,7 +62,7 @@ void ContentDownloader::cancelTask(const std::string &url)
     }
 }
 
-void ContentDownloader::finishTasks()
+void ContentDownloader::onTasksFinished()
 {
     m_taskQueue.clear();
     for (auto *reply : m_replies.keys()) {
@@ -91,6 +96,7 @@ void ContentDownloader::processReply()
         task->callback(std::move(content));
     }
 
-    emit updateQueue();
-    reply->deleteLater();
+    processQueue();
+    if (reply)
+        reply->deleteLater();
 }

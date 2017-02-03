@@ -13,20 +13,18 @@ QTangramPointProperties::QTangramPointProperties(QObject *parent)
       m_color()
 {
     setSize(QVariant::fromValue(QStringLiteral("32px")));
-    setColor(Qt::white);
     setStyle("points");
-    setStyling(QStringLiteral("order"), QVariant::fromValue(2));
 }
 
-void QTangramPointProperties::setColor(const QColor &color)
+void QTangramPointProperties::setColor(const QVariant &color)
 {
     if (color == m_color)
         return;
     m_color = color;
-    setStyling(QStringLiteral("color"), QVariant::fromValue(m_color.name(QColor::HexArgb)));
+    setStyling(QStringLiteral("color"), color);
 }
 
-QColor QTangramPointProperties::color() const
+QVariant QTangramPointProperties::color() const
 {
     return m_color;
 }
@@ -174,6 +172,9 @@ void QTangramPoint::setImageData()
         return;
 
     QString source = m_imageSource.startsWith("qrc:") ? m_imageSource.remove(0, 3) : m_imageSource;
+    if (source.isEmpty())
+            return;
+
     QImage image(source);
     if (image.isNull())
         return;

@@ -2,7 +2,6 @@
 #define QTANGRAMPOINT_H
 
 #include <QObject>
-#include <QColor>
 #include <QGeoCoordinate>
 #include "qtangramgeometry.h"
 
@@ -13,14 +12,14 @@ class QTangramPointProperties : public QTangramGeometryProperties
     Q_OBJECT
 
     Q_PROPERTY(QVariant size READ size WRITE setSize NOTIFY sizeChanged)
-    Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
+    Q_PROPERTY(QVariant color READ color WRITE setColor NOTIFY colorChanged)
     Q_PROPERTY(qreal rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
 
 public:
     explicit QTangramPointProperties(QObject *parent = 0);
 
-    void setColor(const QColor &color);
-    QColor color() const;
+    void setColor(const QVariant &color);
+    QVariant color() const;
 
     void setSize(const QVariant &size);
     QVariant size() const;
@@ -38,7 +37,7 @@ protected:
 
 private:
     QVariant m_size;
-    QColor m_color;
+    QVariant m_color;
     qreal m_rotation;
 };
 

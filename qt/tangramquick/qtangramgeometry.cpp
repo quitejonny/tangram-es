@@ -4,6 +4,7 @@
 #include "tangram.h"
 #include <QJsonObject>
 #include <QJsonDocument>
+#include <QJSValue>
 #include <QDebug>
 
 QTangramGeometryProperties::QTangramGeometryProperties(QObject *parent)
@@ -12,12 +13,26 @@ QTangramGeometryProperties::QTangramGeometryProperties(QObject *parent)
     setStyling(QStringLiteral("interactive"), QVariant::fromValue(false));
 }
 
+void QTangramGeometryProperties::setExtraStyling(QVariantMap styling)
+{
+    m_extraStyling = styling;
+}
+
+QVariantMap QTangramGeometryProperties::extraStyling()
+{
+    return m_extraStyling;
+}
+
 void QTangramGeometryProperties::setStyling(QString key, QVariant value)
 {
     if (m_stylings.contains(key) && m_stylings.value(key) == value)
         return;
 
-    m_stylings[key] = value;
+    if (!value.isValid())
+        m_stylings.remove(key);
+    else
+        m_stylings[key] = value;
+
     updateProperty(key);
     emit stylingChanged();
 }
@@ -65,6 +80,7 @@ void QTangramGeometry::setVisible(bool visible)
     if (m_visible == visible)
         return;
 
+    m_visible = visible;
     if (m_map) {
         m_tangramMap->markerSetVisible(m_markerId, m_visible);
     }
@@ -127,15 +143,20 @@ QTangramMap *QTangramGeometry::map()
 
 void QTangramGeometry::setStyling()
 {
-    if (m_markerId != -1) {
-        auto obj = QJsonObject::fromVariantMap(m_properties->stylings());
-        QJsonDocument doc(obj);
-        QByteArray stylings = doc.toJson(QJsonDocument::Compact);
-        qDebug() << Q_FUNC_INFO << stylings;
-        m_tangramMap->markerSetStyling(m_markerId, stylings.toStdString().c_str());
-        // workaround: if styling of marker changes, the marker may not be shown
-        m_tangramMap->handlePanGesture(0, 0, 0, 0);
-    }
+    if (m_markerId == -1)
+        return;
+
+    QVariantMap allStylings = m_properties->stylings();
+    QVariantMap extraStylings = m_properties->extraStyling();
+    for (const auto &key : extraStylings.keys())
+        allStylings[key] = extraStylings[key];
+
+    auto obj = QJsonObject::fromVariantMap(allStylings);
+    QJsonDocument doc(obj);
+    QByteArray stylings = doc.toJson(QJsonDocument::Compact);
+    m_tangramMap->markerSetStyling(m_markerId, stylings.toStdString().c_str());
+    // workaround: if styling of marker changes, the marker may not be shown
+    m_tangramMap->handlePanGesture(0, 0, 0, 0);
 }
 
 void QTangramGeometry::initGeometry()

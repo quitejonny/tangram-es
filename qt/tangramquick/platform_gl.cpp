@@ -1,5 +1,6 @@
 #include "platform_gl.h"
 #include "gl.h"
+#include <QOpenGLFunctions>
 
 namespace Tangram {
 
@@ -256,12 +257,12 @@ void GL::uniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, co
 
 // mapbuffer
 void* GL::mapBuffer(GLenum target, GLenum access) {
-    auto result = __qt_gl_funcs->glMapBufferRange(target, 0, 1, access);
+    auto result = __qt_gl_extra_funcs->mapBuffer(target, access);
     GL_CHECK();
     return result;
 }
 GLboolean GL::unmapBuffer(GLenum target) {
-    auto result = __qt_gl_funcs->glUnmapBuffer(target);
+    auto result = __qt_gl_extra_funcs->unmapBuffer(target);
     GL_CHECK();
     return result;
 }
@@ -272,13 +273,13 @@ void GL::finish(void) {
 
 // VAO
 void GL::bindVertexArray(GLuint array) {
-    GL_CHECK(__qt_gl_funcs->glBindVertexArray(array));
+    GL_CHECK(__qt_gl_extra_funcs->bindVertexArray(array));
 }
 void GL::deleteVertexArrays(GLsizei n, const GLuint *arrays) {
-    GL_CHECK(__qt_gl_funcs->glDeleteVertexArrays(n, arrays));
+    GL_CHECK(__qt_gl_extra_funcs->deleteVertexArrays(n, arrays));
 }
 void GL::genVertexArrays(GLsizei n, GLuint *arrays) {
-    GL_CHECK(__qt_gl_funcs->glGenVertexArrays(n, arrays));
+    GL_CHECK(__qt_gl_extra_funcs->genVertexArrays(n, arrays));
 }
 
 // Framebuffer

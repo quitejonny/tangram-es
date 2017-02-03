@@ -6,6 +6,10 @@ typedef long GLintptr;
 #elif defined(PLATFORM_TIZEN)
 typedef signed long int  GLintptr;
 typedef signed long int  GLsizeiptr;
+#elif defined(PLATFORM_QT)
+#include <KHR/khrplatform.h>
+typedef khronos_ssize_t GLsizeiptr;
+typedef khronos_intptr_t GLintptr;
 #else
 #include <stddef.h>
 typedef ptrdiff_t GLsizeiptr;

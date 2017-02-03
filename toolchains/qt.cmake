@@ -1,6 +1,11 @@
 # set for test in other cmake files
 set(PLATFORM_QT ON)
 
+if(EXISTS "/etc/debian_version")
+      include(${CMAKE_ROOT}/Modules/MultiArchCross.cmake OPTIONAL
+RESULT_VARIABLE _INCLUDED_MULTIARCH_TOOLCHAIN_FILE)
+endif()
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fPIC")
 
 # global compile options
@@ -52,39 +57,6 @@ find_package(Qt5Core)
 find_package(Qt5Qml)
 find_package(Qt5Quick)
 find_package(Qt5Location)
-# find_package(Qt5Gui)
-# find_package(Qt5Widgets)
-find_package(Qt5OpenGL)
-
-# if(APPLICATION)
-# 
-#   set(EXECUTABLE_NAME "tangram")
-# 
-#   # OpenGL for core??
-#   find_package(OpenGL REQUIRED)
-# 
-#   # add sources and include headers
-#   find_sources_and_include_directories(
-#     ${PROJECT_SOURCE_DIR}/qt/tangramqt/*.h
-#     ${PROJECT_SOURCE_DIR}/qt/tangramqt/*.cpp)
-# 
-#   qt5_wrap_ui(PROJECT_UI ${PROJECT_SOURCE_DIR}/qt/tangramqt/mainwindow.ui)
-# 
-#   add_executable(${EXECUTABLE_NAME}
-#     ${SOURCES}
-#     ${PROJECT_UI})
-# 
-#   target_link_libraries(${EXECUTABLE_NAME}
-#     Qt5::Core Qt5::Widgets Qt5::Gui Qt5::OpenGL
-#     ${CORE_LIBRARY}
-#     -lcurl
-#     -ldl
-#     -pthread)
-# 
-#   add_resources(${EXECUTABLE_NAME} "${PROJECT_SOURCE_DIR}/scenes")
-# 
-# endif()
-
 
 set(PLUGIN_NAME tangramquick) # in order to have libtangramquick.so
 
@@ -104,19 +76,12 @@ add_library(${PLUGIN_NAME} SHARED
 target_link_libraries(${PLUGIN_NAME}
   PUBLIC
   Qt5::Core Qt5::Qml Qt5::Quick Qt5::Location Qt5::Network
-  #"-Wl,-whole-archive"
   ${CORE_LIBRARY}
-  #"-Wl,-no-whole-archive")
-   -lcurl
    -ldl
    -pthread
    -lgcc_s
    -lgcc
    )
-
-# target_compile_options(${PLUGIN_NAME}
-#   PUBLIC
-#   -fPIC)
 
 set_target_properties(${PLUGIN_NAME} PROPERTIES
 	LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/com/mapzen/tangram)

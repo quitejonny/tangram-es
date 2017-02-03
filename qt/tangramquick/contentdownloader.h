@@ -5,7 +5,6 @@
 #include <QQueue>
 #include <QMap>
 #include <QNetworkAccessManager>
-#include <QNetworkRequest>
 #include <QNetworkReply>
 #include "platform.h"
 #include <memory>
@@ -21,6 +20,9 @@ struct DownloadTask {
     }
 };
 
+Q_DECLARE_METATYPE(std::string)
+Q_DECLARE_METATYPE(UrlCallback)
+
 
 class ContentDownloader : public QObject
 {
@@ -28,22 +30,21 @@ class ContentDownloader : public QObject
 public:
     explicit ContentDownloader(QObject *parent = 0);
 
-    void addTask(const std::string &url, const UrlCallback &callback);
-    void cancelTask(const std::string &url);
-    void finishTasks();
-
     void setMaximumWorkers(int maximumWorkers);
     int maximumWorkers();
 
 signals:
-    void updateQueue();
-
-public slots:
-    void processReply();
-    void processError(QNetworkReply::NetworkError error);
+    void addTask(const std::string &url, const UrlCallback &callback);
+    void cancelTask(const std::string &url);
+    void finishTasks();
 
 private slots:
+    void queueTask(const std::string &url, const UrlCallback &callback);
+    void onTaskCanceled(const std::string &url);
+    void onTasksFinished();
     void processQueue();
+    void processReply();
+    void processError(QNetworkReply::NetworkError error);
 
 private:
     int m_maximumWorkers;

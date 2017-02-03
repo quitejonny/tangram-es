@@ -5,13 +5,17 @@
 #include <string>
 #include <list>
 #include <QVariant>
+#include <QFile>
 
 #include "platform_qt.h"
 #include "platform_gl.h"
 #include <QOpenGLFunctions>
+#include <QOpenGLContext>
+#include <QDebug>
 
 #include <libgen.h>
 #include <unistd.h>
+#include <memory>
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <QCoreApplication>
@@ -28,7 +32,8 @@
 #define FONT_JA "fonts/DroidSansJapanese.ttf"
 #define FALLBACK "fonts/DroidSansFallback.ttf"
 
-QOpenGLExtraFunctions *__qt_gl_funcs;
+QOpenGLFunctions *__qt_gl_funcs;
+std::unique_ptr<OpenGLExtraFunctions> __qt_gl_extra_funcs;
 
 static std::string s_resourceRoot;
 
@@ -36,9 +41,25 @@ static QObject *s_quickItem = NULL;
 
 static ContentDownloader *s_downloader = NULL;
 
-void setQtGlFunctions(QOpenGLExtraFunctions *gl_funcs)
+
+OpenGLExtraFunctions::OpenGLExtraFunctions(QOpenGLContext *context)
 {
-    __qt_gl_funcs = gl_funcs;
+    qDebug() << context->extensions();
+    if (context->hasExtension("GL_OES_mapbuffer")) {
+        unmapBuffer = reinterpret_cast<GLboolean (QOPENGLF_APIENTRYP)(GLenum )>(context->getProcAddress("glUnmapBufferOES"));
+        mapBuffer = reinterpret_cast<GLvoid* (QOPENGLF_APIENTRYP)(GLenum , GLenum )>(context->getProcAddress("glMapBufferOES"));
+    }
+    if (context->hasExtension("GL_OES_vertex_array_object")) {
+        genVertexArrays = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLsizei , GLuint *)>(context->getProcAddress("glGenVertexArraysOES"));
+        deleteVertexArrays = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLsizei , const GLuint *)>(context->getProcAddress("glDeleteVertexArraysOES"));
+        bindVertexArray = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLuint )>(context->getProcAddress("glBindVertexArrayOES"));
+    }
+}
+
+void setQtGlFunctions(QOpenGLContext *gl_context)
+{
+    __qt_gl_extra_funcs = std::unique_ptr<OpenGLExtraFunctions> (new OpenGLExtraFunctions(gl_context));
+    __qt_gl_funcs = gl_context->functions();
     __qt_gl_funcs->initializeOpenGLFunctions();
 }
 
@@ -93,26 +114,22 @@ std::string stringFromFile(const char* _path) {
 
 unsigned char* bytesFromFile(const char* _path, size_t& _size) {
 
-    std::string path = _path;
-    std::string start = "/";
-    if (path.compare(0, start.length(), start) == 0)
-        path = "." + path;
-    std::ifstream resource(path, std::ifstream::ate | std::ifstream::binary);
+    auto path = QString::fromUtf8(_path);
+    if (path.startsWith("qrc:"))
+        path = path.remove(0, 3);
 
-    if(!resource.is_open()) {
-        logMsg("Failed to read file at path: %s\n", path);
+    QFile file(path);
+    if (!file.open(QFile::ReadOnly)) {
         _size = 0;
         return nullptr;
     }
 
-    _size = resource.tellg();
-
-    resource.seekg(std::ifstream::beg);
-
+    qDebug() << Q_FUNC_INFO << path << file.size();
+    _size = file.size();
     char* cdata = (char*) malloc(sizeof(char) * (_size));
 
-    resource.read(cdata, _size);
-    resource.close();
+    file.read(cdata, _size);
+    file.close();
 
     return reinterpret_cast<unsigned char *>(cdata);
 }

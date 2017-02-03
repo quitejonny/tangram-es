@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QMap>
 #include <QVariant>
+#include <QJSValue>
 
 namespace Tangram {
 class Map;
@@ -15,10 +16,13 @@ class QTangramGeometryProperties : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(QString style READ style WRITE setStyle NOTIFY styleChanged)
+    Q_PROPERTY(QVariantMap extraStyling READ extraStyling WRITE setExtraStyling NOTIFY extraStylingChanged)
 public:
     explicit QTangramGeometryProperties(QObject *parent =  0);
 
     void setStyle(QString style);
+    void setExtraStyling(QVariantMap styling);
+    QVariantMap extraStyling();
     QString style();
 
     Q_INVOKABLE void setStyling(QString key, QVariant value);
@@ -26,11 +30,13 @@ public:
 
 Q_SIGNALS:
     void stylingChanged();
+    void extraStylingChanged();
     void styleChanged();
 
 protected:
     virtual void updateProperty(QString key);
     QVariantMap m_stylings;
+    QVariantMap m_extraStyling;
 };
 
 

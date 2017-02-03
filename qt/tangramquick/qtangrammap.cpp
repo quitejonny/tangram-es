@@ -7,6 +7,7 @@
 #include <QDebug>
 #include "qtangramgeometry.h"
 #include "qtangrampoint.h"
+#include <locale>
 
 QTangramMap::QTangramMap(QObject *parent)
     : QObject(parent),
@@ -15,6 +16,7 @@ QTangramMap::QTangramMap(QObject *parent)
       m_mutex(),
       m_scene()
 {
+    std::locale::global(std::locale("C"));
     m_tangramMap = new Tangram::Map();
     m_controller = new QTangramMapController(this);
 }
@@ -39,7 +41,8 @@ void QTangramMap::resize(int width, int height)
 void QTangramMap::setScene(QUrl scene, bool useScenePos)
 {
     m_scene = scene;
-    m_tangramMap->loadSceneAsync(m_scene.fileName().toStdString().c_str(),
+    QString sceneFile = m_scene.isLocalFile() ? m_scene.toLocalFile() : m_scene.url();
+    m_tangramMap->loadSceneAsync(sceneFile.toStdString().c_str(),
                                  useScenePos, std::bind(&QTangramMap::sceneChanged, this));
 }
 

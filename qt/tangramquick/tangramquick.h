@@ -90,6 +90,8 @@ protected:
 
     void componentComplete() Q_DECL_OVERRIDE;
 
+    QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) Q_DECL_OVERRIDE;
+
 private Q_SLOTS:
     void updateScene();
     void populateMap();

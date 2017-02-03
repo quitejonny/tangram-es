@@ -6,8 +6,12 @@
 #define GL_CHECK(STMT) STMT;
 #endif
 
+#include "platform_qt.h"
+#include <memory>
 
-#include "gl.h"
-#include <QOpenGLExtraFunctions>
+class QOpenGLFunctions;
 
-extern QOpenGLExtraFunctions *__qt_gl_funcs;
+
+extern QOpenGLFunctions *__qt_gl_funcs;
+
+extern std::unique_ptr<OpenGLExtraFunctions> __qt_gl_extra_funcs;

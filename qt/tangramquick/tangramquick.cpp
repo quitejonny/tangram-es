@@ -4,7 +4,8 @@
 #include <tangram.h>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLContext>
-#include <QOpenGLExtraFunctions>
+#include <QOpenGLFunctions>
+#include <QSGSimpleTextureNode>
 #include "platform_qt.h"
 #include <QDebug>
 #include "qtangrammap.h"
@@ -26,7 +27,6 @@ QDeclarativeTangramMap::QDeclarativeTangramMap(QQuickItem *parent)
 {
     setAcceptedMouseButtons(Qt::AllButtons);
     registerItem((QObject*)this);
-    setMirrorVertically(true);
 
     m_gestureArea->setMap(m_map);
     connect(m_map, SIGNAL(sceneChanged()), this, SLOT(updateScene()));
@@ -46,9 +46,23 @@ QDeclarativeTangramMap::~QDeclarativeTangramMap()
 {
 }
 
+QSGNode *QDeclarativeTangramMap::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
+{
+    // before Qt5.6: mirror vertically
+    auto *n = static_cast<QSGSimpleTextureNode *>(QQuickFramebufferObject::updatePaintNode(node, NULL));
+    n->setTextureCoordinatesTransform(QSGSimpleTextureNode::MirrorVertically);
+
+    return n;
+}
+
 void QDeclarativeTangramMap::updateScene()
 {
     populateMap();
+
+    for (auto &item : m_mapItems) {
+        item->setMap(0);
+        item->setMap(m_map);
+    }
 
     if (m_center.isValid())
         m_map->mapController()->setCenter(m_center);
@@ -277,7 +291,6 @@ void QDeclarativeTangramMap::removeMapItem(QTangramGeometry *item)
 
 void QDeclarativeTangramMap::addMapItem(QTangramGeometry *item)
 {
-    qDebug() << Q_FUNC_INFO;
     if (!item || item->map())
         return;
     item->setMap(m_map);
@@ -318,8 +331,9 @@ void TangramQuickRenderer::initializeGL()
     m_program.reset(new QOpenGLShaderProgram);
     m_program->link();
 
-    auto f = QOpenGLContext::currentContext()->extraFunctions();
-    setQtGlFunctions(f);
+    auto f = QOpenGLContext::currentContext()->functions();
+    auto context = QOpenGLContext::currentContext();
+    setQtGlFunctions(context);
 
     m_dataSource = std::make_shared<Tangram::ClientGeoJsonSource>("touch", "");
 
