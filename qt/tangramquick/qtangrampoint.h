@@ -70,6 +70,7 @@ Q_SIGNALS:
     void coordinateChanged();
     void draggableChanged();
     void imageSourceChanged();
+    void dragged();
 
 public slots:
 

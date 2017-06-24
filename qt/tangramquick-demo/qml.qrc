@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
         <file>main.qml</file>
+        <file>scenes/scene.yaml</file>
     </qresource>
 </RCC>
-

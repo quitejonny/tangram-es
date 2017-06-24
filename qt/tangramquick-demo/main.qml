@@ -15,7 +15,7 @@ Window {
         id: map
         focus: true
         anchors.fill: parent;
-        sceneConfiguration: "scene.yaml"
+        sceneConfiguration: "scenes/scene.yaml"
         zoomLevel: 16
         center: centerCoordinate
         tilt: 0
@@ -35,13 +35,34 @@ Window {
         TangramPoint {
             id: point
             coordinate: centerCoordinate
-            visual.size: "32px"
-            visual.style: "icons"
+            visual.color: "#88ffffff"
+            //visual.style: "icons"
+            visual.extraStyling: {
+                "size": ["60", "60"],
+                collide: false
+            }
+
             draggable: true
             clickable: true
-            Component.onCompleted: {
-                visual.setStyling("sprite", "train")
+
+            onClicked: {
+                console.debug("icon was clicked.")
             }
+        }
+
+        TangramPoint {
+            id: secondPoint
+            coordinate: centerCoordinate
+            visual.color: "#00ffff"
+            //visual.style: "icons"
+            visual.extraStyling: {
+                "size": "20px",
+                collide: false
+            }
+
+            draggable: true
+            clickable: true
+
             onClicked: {
                 console.debug("icon was clicked.")
             }

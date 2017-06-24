@@ -1,6 +1,7 @@
 #include "contentdownloader.h"
 #include <QNetworkRequest>
 #include <QDebug>
+#include <vector>
 
 ContentDownloader::ContentDownloader(QObject *parent)
     : QObject(parent),
@@ -92,11 +93,11 @@ void ContentDownloader::processReply()
         m_replies.remove(reply);
 
         QByteArray bytes = reply->readAll();
-        std::vector<char> content(bytes.constData(), bytes.constData() + bytes.size());
+        std::vector<char> content(bytes.begin(), bytes.end());
         task->callback(std::move(content));
     }
 
-    processQueue();
     if (reply)
         reply->deleteLater();
+    processQueue();
 }

@@ -5,6 +5,7 @@
 #include <QMap>
 #include <QVariant>
 #include <QJSValue>
+#include <QGeoCoordinate>
 
 namespace Tangram {
 class Map;
@@ -48,6 +49,7 @@ class QTangramGeometry : public QObject
     Q_PROPERTY(bool clickable READ clickable WRITE setClickable NOTIFY clickableChanged)
 public:
     explicit QTangramGeometry(QObject *parent = 0, QTangramGeometryProperties *properties = 0);
+    ~QTangramGeometry();
 
     virtual void setMap(QTangramMap *map);
     QTangramMap *map();
@@ -67,7 +69,7 @@ signals:
     void visibleChanged(bool visible);
     void drawOrderChanged(int drawOrder);
     void clickableChanged();
-    void clicked();
+    void clicked(QGeoCoordinate coordinate);
 
 public slots:
 

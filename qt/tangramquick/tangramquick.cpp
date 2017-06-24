@@ -356,10 +356,11 @@ void TangramQuickRenderer::render()
         QMutexLocker locker(&m_map->m_mutex);
         m_map->tangramObject()->update((float)m_elapsedTimer.elapsed() / 100.f);
         m_map->tangramObject()->render();
-    }
     m_elapsedTimer.restart();
 
     f->glActiveTexture(GL_TEXTURE0);
+    update();
+    }
 }
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)

@@ -32,7 +32,7 @@
 #define FONT_JA "fonts/DroidSansJapanese.ttf"
 #define FALLBACK "fonts/DroidSansFallback.ttf"
 
-QOpenGLFunctions *__qt_gl_funcs;
+QOpenGLFunctions *__qt_gl_funcs = NULL;
 std::unique_ptr<OpenGLExtraFunctions> __qt_gl_extra_funcs;
 
 static std::string s_resourceRoot;
@@ -44,15 +44,22 @@ static ContentDownloader *s_downloader = NULL;
 
 OpenGLExtraFunctions::OpenGLExtraFunctions(QOpenGLContext *context)
 {
-    qDebug() << context->extensions();
+    qDebug() << Q_FUNC_INFO;
     if (context->hasExtension("GL_OES_mapbuffer")) {
         unmapBuffer = reinterpret_cast<GLboolean (QOPENGLF_APIENTRYP)(GLenum )>(context->getProcAddress("glUnmapBufferOES"));
         mapBuffer = reinterpret_cast<GLvoid* (QOPENGLF_APIENTRYP)(GLenum , GLenum )>(context->getProcAddress("glMapBufferOES"));
+    } else {
+        unmapBuffer = reinterpret_cast<GLboolean (QOPENGLF_APIENTRYP)(GLenum )>(context->getProcAddress("glUnmapBuffer"));
+        mapBuffer = reinterpret_cast<GLvoid* (QOPENGLF_APIENTRYP)(GLenum , GLenum )>(context->getProcAddress("glMapBuffer"));
     }
     if (context->hasExtension("GL_OES_vertex_array_object")) {
         genVertexArrays = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLsizei , GLuint *)>(context->getProcAddress("glGenVertexArraysOES"));
         deleteVertexArrays = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLsizei , const GLuint *)>(context->getProcAddress("glDeleteVertexArraysOES"));
         bindVertexArray = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLuint )>(context->getProcAddress("glBindVertexArrayOES"));
+    } else {
+        genVertexArrays = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLsizei , GLuint *)>(context->getProcAddress("glGenVertexArrays"));
+        deleteVertexArrays = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLsizei , const GLuint *)>(context->getProcAddress("glDeleteVertexArrays"));
+        bindVertexArray = reinterpret_cast<void (QOPENGLF_APIENTRYP)(GLuint )>(context->getProcAddress("glBindVertexArray"));
     }
 }
 

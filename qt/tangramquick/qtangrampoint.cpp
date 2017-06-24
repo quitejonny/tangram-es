@@ -142,7 +142,6 @@ void QTangramPoint::setDraggable(bool draggable)
     if (interactive != isInteractive()) {
         m_properties->setStyling(QStringLiteral("interactive"),
                                  QVariant::fromValue(isInteractive()));
-        setStyling();
     }
 }
 

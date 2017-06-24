@@ -368,7 +368,7 @@ void QTangramGestureArea::onClickedFeatures(const Tangram::MarkerPickResult *res
     int id = result->id;
     for (auto &marker : m_declarativeMap->m_map->m_clickableItems) {
         if (id == marker->markerId()) {
-            emit marker->clicked();
+            emit marker->clicked(m_startCoord);
             break;
         }
     }
@@ -499,6 +499,7 @@ void QTangramGestureArea::endDrag()
     coordinate.setLatitude(coordinate.latitude() + m_drag.m_latitudeDistance);
     coordinate.setLongitude(coordinate.longitude() + m_drag.m_longitudeDistance);
     m_drag.m_item->setCoordinate(coordinate);
+    emit m_drag.m_item->dragged();
     m_drag.m_item = 0;
     m_drag.m_id = 0;
     m_drag.m_latitudeDistance = 0;

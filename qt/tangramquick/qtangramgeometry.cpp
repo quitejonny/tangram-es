@@ -75,6 +75,12 @@ QTangramGeometry::QTangramGeometry(QObject *parent, QTangramGeometryProperties *
     connect(m_properties, SIGNAL(stylingChanged()), this, SLOT(setStyling()));
 }
 
+QTangramGeometry::~QTangramGeometry()
+{
+    if (m_tangramMap)
+        m_tangramMap->markerRemove(m_markerId);
+}
+
 void QTangramGeometry::setVisible(bool visible)
 {
     if (m_visible == visible)
@@ -111,6 +117,9 @@ int QTangramGeometry::drawOrder()
 
 void QTangramGeometry::setMap(QTangramMap *map)
 {
+    if (map == m_map)
+        return;
+
     if (!map && m_map) {
         m_map->setClickable(this, false);
     }
@@ -177,7 +186,6 @@ void QTangramGeometry::setClickable(bool clickable)
     if (interactive != isInteractive()) {
         m_properties->setStyling(QStringLiteral("interactive"),
                                  QVariant::fromValue(isInteractive()));
-        setStyling();
     }
 }
 
