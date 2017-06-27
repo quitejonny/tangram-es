@@ -1,13 +1,14 @@
-#include "tileTask.h"
-#include "data/dataSource.h"
-#include "tile/tileBuilder.h"
+#include "tile/tileTask.h"
+
+#include "data/tileSource.h"
 #include "scene/scene.h"
-#include "util/mapProjection.h"
 #include "tile/tile.h"
+#include "tile/tileBuilder.h"
+#include "util/mapProjection.h"
 
 namespace Tangram {
 
-TileTask::TileTask(TileID& _tileId, std::shared_ptr<DataSource> _source, int _subTask) :
+TileTask::TileTask(TileID& _tileId, std::shared_ptr<TileSource> _source, int _subTask) :
     m_tileId(_tileId),
     m_subTaskId(_subTask),
     m_source(_source),
@@ -31,7 +32,7 @@ void TileTask::complete() {
         assert(subTask->isReady());
         subTask->complete(*this);
     }
-    
+
 }
 
 }

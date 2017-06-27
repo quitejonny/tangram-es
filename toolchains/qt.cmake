@@ -37,11 +37,11 @@ check_unsupported_compiler_version()
 # compile definitions (adds -DPLATFORM_QT)
 set(CORE_COMPILE_DEFS PLATFORM_QT)
 
-if (USE_EXTERNAL_LIBS)
-  include(${EXTERNAL_LIBS_DIR}/core-dependencies.cmake)
-else()
-  add_subdirectory(${PROJECT_SOURCE_DIR}/external)
-endif()
+# if (USE_EXTERNAL_LIBS)
+#   include(${EXTERNAL_LIBS_DIR}/core-dependencies.cmake)
+# else()
+#   add_subdirectory(${PROJECT_SOURCE_DIR}/external)
+# endif()
 
 # load core library
 add_subdirectory(${PROJECT_SOURCE_DIR}/core)
@@ -61,17 +61,17 @@ find_package(Qt5Location)
 set(PLUGIN_NAME tangramquick) # in order to have libtangramquick.so
 
 add_library(${PLUGIN_NAME} SHARED
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/tangramquick_plugin.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/tangramquick.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangramgesturearea.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammap.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrammapcontroller.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangramgeometry.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrampolyline.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/qtangrampoint.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_gl.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/contentdownloader.cpp
-  ${CMAKE_SOURCE_DIR}/qt/tangramquick/platform_qt.cpp)
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/tangramquick_plugin.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/tangramquick.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangramgesturearea.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrammap.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrammapcontroller.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangramgeometry.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrampolyline.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrampoint.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/platform_gl.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/contentdownloader.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/platform_qt.cpp)
 
 target_link_libraries(${PLUGIN_NAME}
   PUBLIC
@@ -84,11 +84,11 @@ target_link_libraries(${PLUGIN_NAME}
    )
 
 set_target_properties(${PLUGIN_NAME} PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/com/mapzen/tangram)
+  LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin/com/mapzen/tangram)
 
 # Copy qmldir file to build dir for running in QtCreator
 add_custom_target(${PLUGIN_NAME}-qmldir ALL
-	COMMAND cp ${PROJECT_SOURCE_DIR}/qt/tangramquick/qmldir ${PROJECT_BINARY_DIR}/bin/com/mapzen/tangram)
+  COMMAND cp ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qmldir ${PROJECT_BINARY_DIR}/bin/com/mapzen/tangram)
 
 
 if(APPLICATION)
@@ -97,11 +97,12 @@ if(APPLICATION)
 
   # add sources and include headers
   find_sources_and_include_directories(
-    ${PROJECT_SOURCE_DIR}/qt/tangramquick-demo/*.h
-    ${PROJECT_SOURCE_DIR}/qt/tangramquick-demo/*.cpp)
+    ${PROJECT_SOURCE_DIR}/platforms/qt/demo/*.h
+    ${PROJECT_SOURCE_DIR}/platforms/qt/demo/*.cpp)
 
-  add_executable(${EXECUTABLE_NAME} ${SOURCES}
-	  ${PROJECT_SOURCE_DIR}/qt/tangramquick-demo/qml.qrc)
+  add_executable(${EXECUTABLE_NAME}
+    ${SOURCES}
+    ${PROJECT_SOURCE_DIR}/platforms/qt/demo/qml.qrc)
   target_link_libraries(${EXECUTABLE_NAME} Qt5::Core Qt5::Qml Qt5::Quick)
 
   add_resources(${EXECUTABLE_NAME} "${PROJECT_SOURCE_DIR}/scenes")

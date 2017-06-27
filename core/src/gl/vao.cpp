@@ -1,14 +1,14 @@
-#include "vao.h"
-#include "gl/error.h"
-#include "renderState.h"
-#include "shaderProgram.h"
-#include "vertexLayout.h"
+#include "gl/vao.h"
+#include "gl/glError.h"
+#include "gl/renderState.h"
+#include "gl/shaderProgram.h"
+#include "gl/vertexLayout.h"
 #include <unordered_map>
 
 namespace Tangram {
 
-void Vao::initialize(RenderState& rs, ShaderProgram& _program, const std::vector<std::pair<uint32_t, uint32_t>>& _vertexOffsets,
-               VertexLayout& _layout, GLuint _vertexBuffer, GLuint _indexBuffer) {
+void Vao::initialize(RenderState& rs, ShaderProgram& _program, const VertexOffsets& _vertexOffsets,
+                     VertexLayout& _layout, GLuint _vertexBuffer, GLuint _indexBuffer) {
 
     m_glVAOs.resize(_vertexOffsets.size());
 
@@ -22,15 +22,15 @@ void Vao::initialize(RenderState& rs, ShaderProgram& _program, const std::vector
         locations[attrib.name] = location;
     }
 
+    rs.vertexBuffer(_vertexBuffer);
+
     int vertexOffset = 0;
     for (size_t i = 0; i < _vertexOffsets.size(); ++i) {
         auto vertexIndexOffset = _vertexOffsets[i];
         int nVerts = vertexIndexOffset.second;
         GL::bindVertexArray(m_glVAOs[i]);
 
-        rs.vertexBufferUnset(_vertexBuffer);
-        rs.vertexBuffer(_vertexBuffer);
-
+        // ELEMENT_ARRAY_BUFFER must be bound after bindVertexArray to be used by VAO
         if (_indexBuffer != 0) {
             rs.indexBufferUnset(_indexBuffer);
             rs.indexBuffer(_indexBuffer);
@@ -42,6 +42,10 @@ void Vao::initialize(RenderState& rs, ShaderProgram& _program, const std::vector
         vertexOffset += nVerts;
     }
 
+    GL::bindVertexArray(0);
+
+    rs.vertexBuffer(0);
+    rs.indexBuffer(0);
 }
 
 bool Vao::isInitialized() {
@@ -66,4 +70,3 @@ void Vao::dispose() {
 }
 
 }
-

@@ -1,12 +1,13 @@
 #pragma once
 
 #include "scene/sceneLayer.h"
+
 #include <string>
 
 namespace Tangram {
 
 // DataLayer represents a top-level layer in the stylesheet, distinct from
-// SceneLayer by its association with a collection within a DataSource
+// SceneLayer by its association with a collection within a TileSource
 class DataLayer : public SceneLayer {
 
     std::string m_source;

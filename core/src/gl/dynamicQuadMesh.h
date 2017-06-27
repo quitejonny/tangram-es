@@ -1,10 +1,12 @@
 #pragma once
 
 #include "gl/mesh.h"
-#include "gl/error.h"
+#include "gl/glError.h"
 #include "gl/renderState.h"
 #include "gl/shaderProgram.h"
 #include "gl/texture.h"
+#include "gl/hardware.h"
+#include "gl/vao.h"
 
 #include <memory>
 #include <vector>
@@ -24,7 +26,7 @@ public:
     bool draw(RenderState& rs, ShaderProgram& _shader, bool _useVao = true) override;
 
     // Draw the mesh while swapping textures using the given texture unit.
-    bool draw(RenderState& rs, ShaderProgram& _shader, int textureUnit);
+    bool draw(RenderState& rs, ShaderProgram& _shader, int textureUnit, bool _useVao = true);
 
     size_t bufferSize() const override {
         return MeshBase::bufferSize();
@@ -67,6 +69,7 @@ private:
 
     std::vector<T> m_vertices;
     std::vector<TextureBatch> m_batches;
+    Vao m_vaos;
 };
 
 template<class T>
@@ -81,8 +84,6 @@ void DynamicQuadMesh<T>::upload(RenderState& rs) {
 
     if (m_nVertices == 0 || m_isUploaded) { return; }
 
-    MeshBase::checkValidity(rs);
-
     // Generate vertex buffer, if needed
     if (m_glVertexBuffer == 0) {
         GL::genBuffers(1, &m_glVertexBuffer);
@@ -95,63 +96,92 @@ void DynamicQuadMesh<T>::upload(RenderState& rs) {
 
 template<class T>
 bool DynamicQuadMesh<T>::draw(RenderState& rs, ShaderProgram& shader, bool useVao) {
-    return draw(rs, shader, 0);
+    return draw(rs, shader, 0, useVao);
 }
 
 template<class T>
-bool DynamicQuadMesh<T>::draw(RenderState& rs, ShaderProgram& shader, int textureUnit) {
-    if (m_nVertices == 0) { return false; }
+bool DynamicQuadMesh<T>::draw(RenderState& rs, ShaderProgram& shader, int textureUnit, bool useVao) {
 
-    // Bind buffers for drawing
-    rs.vertexBuffer(m_glVertexBuffer);
-    rs.indexBuffer(rs.getQuadIndexBuffer());
+    if (m_nVertices == 0) { return false; }
 
     // Enable shader program
     if (!shader.use(rs)) {
         return false;
     }
 
-    size_t verticesDrawn = 0;
-    size_t verticesIndexed = RenderState::MAX_QUAD_VERTICES;
-    size_t verticesTextured = 0;
-    auto nextTextureBatch = m_batches.begin();
+#ifdef DYNAMIC_MESH_VAOS
+    useVao &= Hardware::supportsVAOs;
+
+    if (useVao) {
+        // Capture vao state for a default vertex offset of 0/0
+        if (!m_vaos.isInitialized()) {
+            VertexOffsets vertexOffsets;
+            vertexOffsets.emplace_back(0, 0);
+            m_vaos.initialize(rs, shader, vertexOffsets, *m_vertexLayout,
+                              m_glVertexBuffer, rs.getQuadIndexBuffer());
+        }
+    }
+#endif
+
+    const size_t verticesIndexed = RenderState::MAX_QUAD_VERTICES;
+    size_t vertexPos = 0;
+    size_t vertexBatchEnd = 0;
+    auto textureBatch = m_batches.begin();
 
     // Draw vertices in batches until the end of the mesh.
-    while (verticesDrawn < m_nVertices) {
+    while (vertexPos < m_nVertices) {
 
-        if (verticesDrawn >= verticesTextured) {
-            // Switch to the next texture, if present.
-            // This should always occur in the first loop iteration.
-            bool hasNextTextureBatch = false;
-            if (nextTextureBatch != m_batches.end()) {
-                auto tex = nextTextureBatch->texture;
+        assert(vertexPos <= vertexBatchEnd);
+
+        if (vertexPos == vertexBatchEnd) {
+            vertexBatchEnd = m_nVertices;
+
+            // Bind texture for current batch, if present. Otherwise the
+            // externally bound texture is used (E.g. by TextStyle).
+            if (textureBatch != m_batches.end()) {
+                auto tex = textureBatch->texture;
                 if (!tex) { tex = rs.getDefaultPointTexture(); }
                 tex->update(rs, textureUnit);
                 tex->bind(rs, textureUnit);
-                hasNextTextureBatch = (++nextTextureBatch != m_batches.end());
-            }
-            if (hasNextTextureBatch) {
-                verticesTextured = nextTextureBatch->startVertex;
-            } else {
-                verticesTextured = verticesIndexed;
+
+                if (++textureBatch != m_batches.end()) {
+                    vertexBatchEnd = textureBatch->startVertex;
+                }
             }
         }
 
         // Determine the largest batch of vertices we can draw at once,
         // limited by either a texture swap or the max index value.
-        size_t verticesDrawable = std::min(std::min(verticesIndexed, verticesTextured), m_nVertices);
-        size_t verticesInBatch = verticesDrawable - verticesDrawn;
-        size_t elementsInBatch = verticesInBatch * 6 / 4;
+        size_t verticesInBatch = std::min(vertexBatchEnd - vertexPos, verticesIndexed);
 
         // Set up and draw the batch.
-        size_t byteOffset = verticesDrawn * m_vertexLayout->getStride();
-        m_vertexLayout->enable(rs, shader, byteOffset);
+#ifdef DYNAMIC_MESH_VAOS
+        if (useVao && vertexPos == 0) {
+            // Use vao only for first batch of offsets, other vertices can use a
+            // different stride so just reuse the vertex layout with a different
+            // byte offset instead
+            m_vaos.bind(0);
+        } else
+#endif
+        {
+            rs.vertexBuffer(m_glVertexBuffer);
+            rs.indexBuffer(rs.getQuadIndexBuffer());
+
+            size_t byteOffset = vertexPos * m_vertexLayout->getStride();
+            m_vertexLayout->enable(rs, shader, byteOffset);
+        }
+
+        size_t elementsInBatch = verticesInBatch * 6 / 4;
         GL::drawElements(m_drawMode, elementsInBatch, GL_UNSIGNED_SHORT, 0);
 
-        // Update counters.
-        verticesDrawn += verticesInBatch;
-        verticesIndexed += RenderState::MAX_QUAD_VERTICES;
+#ifdef DYNAMIC_MESH_VAOS
+        if (useVao && vertexPos == 0) {
+            m_vaos.unbind();
+        }
+#endif
 
+        // Update counters.
+        vertexPos += verticesInBatch;
     }
 
     return true;

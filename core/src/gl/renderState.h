@@ -4,6 +4,8 @@
 #include "gl/disposer.h"
 #include "util/jobQueue.h"
 #include <array>
+#include <string>
+#include <unordered_map>
 
 namespace Tangram {
 
@@ -29,12 +31,6 @@ public:
     // Reset the render states.
     void invalidate();
 
-    int generation();
-
-    void increaseGeneration();
-
-    bool isValidGeneration(int _generation);
-
     // Get the texture slot from a texture unit from 0 to TANGRAM_MAX_TEXTURE_UNIT-1.
     static GLuint getTextureUnit(GLuint _unit);
 
@@ -55,6 +51,12 @@ public:
     bool blendingFunc(GLenum sfactor, GLenum dfactor);
 
     bool clearColor(GLclampf r, GLclampf g, GLclampf b, GLclampf a);
+
+    void defaultOpaqueClearColor(GLclampf r, GLclampf g, GLclampf b);
+
+    bool defaultOpaqueClearColor();
+
+    void clearDefaultOpaqueColor();
 
     bool colorMask(GLboolean r, GLboolean g, GLboolean b, GLboolean a);
 
@@ -112,9 +114,11 @@ public:
 
     JobQueue jobQueue;
 
+    std::unordered_map<std::string, GLuint> fragmentShaders;
+    std::unordered_map<std::string, GLuint> vertexShaders;
+
 private:
 
-    int m_validGeneration = 0;
     uint32_t m_nextTextureUnit = 0;
 
     GLuint m_quadIndexBuffer = 0;
@@ -176,6 +180,11 @@ private:
         GLclampf r, g, b, a;
         bool set;
     } m_clearColor;
+
+    struct {
+        GLclampf r, g, b;
+        bool set;
+    } m_defaultOpaqueClearColor;
 
     struct {
         GLenum target;

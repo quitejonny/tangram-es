@@ -1,22 +1,23 @@
-#include "polygonStyle.h"
+#include "style/polygonStyle.h"
 
-#include "tangram.h"
-#include "platform.h"
+#include "gl/mesh.h"
+#include "gl/shaderProgram.h"
+#include "marker/marker.h"
 #include "material.h"
+#include "platform.h"
+#include "scene/drawRule.h"
+#include "tangram.h"
+#include "tile/tile.h"
 #include "util/builders.h"
 #include "util/extrude.h"
-#include "gl/shaderProgram.h"
-#include "gl/mesh.h"
-#include "tile/tile.h"
-#include "scene/drawRule.h"
-#include "marker/marker.h"
+
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/gtc/type_precision.hpp"
-#include "shaders/polygon_fs.h"
-#include "shaders/polygon_vs.h"
-
 #include <cmath>
+
+#include "polygon_fs.h"
+#include "polygon_vs.h"
 
 constexpr float position_scale = 8192.0f;
 constexpr float texture_scale = 65535.0f;
@@ -75,11 +76,11 @@ void PolygonStyle::constructVertexLayout() {
 
 void PolygonStyle::constructShaderProgram() {
 
-    m_shaderProgram->setSourceStrings(SHADER_SOURCE(polygon_fs),
+    m_shaderSource->setSourceStrings(SHADER_SOURCE(polygon_fs),
                                       SHADER_SOURCE(polygon_vs));
 
     if (m_texCoordsGeneration) {
-        m_shaderProgram->addSourceBlock("defines", "#define TANGRAM_USE_TEX_COORDS\n");
+        m_shaderSource->addSourceBlock("defines", "#define TANGRAM_USE_TEX_COORDS\n");
     }
 }
 
@@ -115,7 +116,7 @@ public:
 
     std::unique_ptr<StyledMesh> build() override;
 
-    PolygonStyleBuilder(const PolygonStyle& _style) : StyleBuilder(_style), m_style(_style) {}
+    PolygonStyleBuilder(const PolygonStyle& _style) : m_style(_style) {}
 
     void parseRule(const DrawRule& _rule, const Properties& _props);
 

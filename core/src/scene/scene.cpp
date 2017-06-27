@@ -1,33 +1,34 @@
-#include "scene.h"
+#include "scene/scene.h"
 
-#include "data/dataSource.h"
+#include "data/tileSource.h"
 #include "gl/shaderProgram.h"
+#include "log.h"
 #include "platform.h"
 #include "scene/dataLayer.h"
 #include "scene/light.h"
 #include "scene/spriteAtlas.h"
 #include "scene/stops.h"
+#include "selection/featureSelection.h"
 #include "style/material.h"
 #include "style/style.h"
 #include "text/fontContext.h"
-#include "selection/featureSelection.h"
 #include "util/mapProjection.h"
 #include "util/util.h"
+#include "util/url.h"
 #include "view/view.h"
-#include "log.h"
 
-#include <atomic>
 #include <algorithm>
+#include <atomic>
 #include <regex>
 
 namespace Tangram {
 
 static std::atomic<int32_t> s_serial;
 
-Scene::Scene(const std::string& _path)
+Scene::Scene(std::shared_ptr<const Platform> _platform, const std::string& _path)
     : id(s_serial++),
       m_path(_path),
-      m_fontContext(std::make_shared<FontContext>()),
+      m_fontContext(std::make_shared<FontContext>(_platform)),
       m_featureSelection(std::make_unique<FeatureSelection>()) {
 
     std::regex r("^(http|https):/");
@@ -70,6 +71,7 @@ Scene::Scene(const Scene& _other)
     m_globalRefs = _other.m_globalRefs;
 
     m_mapProjection.reset(new MercatorProjection());
+    m_assets = _other.assets();
 }
 
 Scene::~Scene() {}
@@ -132,13 +134,70 @@ std::shared_ptr<Texture> Scene::getTexture(const std::string& textureName) const
     return texIt->second;
 }
 
-std::shared_ptr<DataSource> Scene::getDataSource(const std::string& name) {
-    auto it = std::find_if(m_dataSources.begin(), m_dataSources.end(),
-                           [&](auto& s){ return s->name() == name; });
-    if (it != m_dataSources.end()) {
+std::shared_ptr<TileSource> Scene::getTileSource(int32_t id) {
+    auto it = std::find_if(m_tileSources.begin(), m_tileSources.end(),
+                           [&](auto& s){ return s->id() == id; });
+    if (it != m_tileSources.end()) {
         return *it;
     }
     return nullptr;
+}
+
+std::shared_ptr<TileSource> Scene::getTileSource(const std::string& name) {
+    auto it = std::find_if(m_tileSources.begin(), m_tileSources.end(),
+                           [&](auto& s){ return s->name() == name; });
+    if (it != m_tileSources.end()) {
+        return *it;
+    }
+    return nullptr;
+}
+
+void Scene::setPixelScale(float _scale) {
+    m_pixelScale = _scale;
+    for (auto& style : m_styles) {
+        style->setPixelScale(_scale);
+    }
+    m_fontContext->setPixelScale(_scale);
+}
+
+void Scene::createSceneAsset(const std::shared_ptr<Platform>& platform, const Url& resolvedUrl,
+                                 const Url& relativeUrl, const Url& base) {
+
+    auto& resolvedStr = resolvedUrl.string();
+    auto& baseStr = base.string();
+    std::shared_ptr<Asset> asset;
+
+    if (m_assets.find(resolvedStr) != m_assets.end()) { return; }
+
+    if ( (Url::getPathExtension(resolvedUrl.path()) == "zip") ){
+        if (relativeUrl.hasHttpScheme() || (resolvedUrl.hasHttpScheme() && base.isEmpty())) {
+            // Data to be fetched later (and zipHandle created) in network callback
+            asset = std::make_shared<ZippedAsset>(resolvedStr);
+
+        } else if (relativeUrl.isAbsolute() || base.isEmpty()) {
+            asset = std::make_shared<ZippedAsset>(resolvedStr, nullptr, platform->bytesFromFile(resolvedStr.c_str()));
+        } else {
+            auto parentAsset = static_cast<ZippedAsset*>(m_assets[baseStr].get());
+            // Parent asset (for base Str) must have been created by now
+            assert(parentAsset);
+            asset = std::make_shared<ZippedAsset>(resolvedStr, nullptr,
+                                                                       parentAsset->readBytesFromAsset(platform, resolvedStr));
+        }
+    } else {
+        const auto& parentAsset = m_assets[baseStr];
+
+        if (relativeUrl.isAbsolute() || (parentAsset && !parentAsset->zipHandle())) {
+            // Make sure to first check for cases when the asset does not belong within a zipBundle
+            asset = std::make_shared<Asset>(resolvedStr);
+        } else if (parentAsset && parentAsset->zipHandle()) {
+            // Asset is in zip bundle
+            asset = std::make_shared<ZippedAsset>(resolvedStr, parentAsset->zipHandle());
+        } else {
+            asset = std::make_shared<Asset>(resolvedStr);
+        }
+    }
+
+    m_assets[resolvedStr] = asset;
 }
 
 }

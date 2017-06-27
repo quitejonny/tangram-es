@@ -1,4 +1,4 @@
-#include "platform.h"
+#include "platform_mock.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -7,7 +7,6 @@
 #include <string>
 
 #include <libgen.h>
-//#include <sys/resource.h>
 
 #define DEFAULT "fonts/NotoSans-Regular.ttf"
 #define FONT_AR "fonts/NotoNaskh-Regular.ttf"
@@ -15,7 +14,9 @@
 #define FONT_JA "fonts/DroidSansJapanese.ttf"
 #define FALLBACK "fonts/DroidSansFallback.ttf"
 
-static bool s_isContinuousRendering = false;
+#include "log.h"
+
+namespace Tangram {
 
 void logMsg(const char* fmt, ...) {
     va_list args;
@@ -24,66 +25,9 @@ void logMsg(const char* fmt, ...) {
     va_end(args);
 }
 
-void requestRender() {
-}
+void MockPlatform::requestRender() const {}
 
-void setContinuousRendering(bool _isContinuous) {
-    s_isContinuousRendering = _isContinuous;
-}
-
-bool isContinuousRendering() {
-    return s_isContinuousRendering;
-}
-
-std::string stringFromFile(const char* _path) {
-
-    std::string out;
-    if (!_path || strlen(_path) == 0) { return out; }
-
-    std::ifstream resource(_path, std::ifstream::ate | std::ifstream::binary);
-
-    if(!resource.is_open()) {
-        logMsg("Failed to read file at path: %s\n", _path);
-        return out;
-    }
-
-    resource.seekg(0, std::ios::end);
-    out.resize(resource.tellg());
-    resource.seekg(0, std::ios::beg);
-    resource.read(&out[0], out.size());
-    resource.close();
-
-    return out;
-}
-
-unsigned char* bytesFromFile(const char* _path, size_t& _size) {
-
-    std::ifstream resource(_path, std::ifstream::ate | std::ifstream::binary);
-
-    if(!resource.is_open()) {
-        logMsg("Failed to read file at path: %s\n", _path);
-        _size = 0;
-        return nullptr;
-    }
-
-    _size = resource.tellg();
-
-    resource.seekg(std::ifstream::beg);
-
-    char* cdata = (char*) malloc(sizeof(char) * _size);
-
-    resource.read(cdata, _size);
-    resource.close();
-
-    return reinterpret_cast<unsigned char *>(cdata);
-}
-
-
-unsigned char* systemFont(const std::string& _name, const std::string& _weight, const std::string& _face, size_t* _size) {
-    return nullptr;
-}
-
-std::vector<FontSourceHandle> systemFontFallbacksHandle() {
+std::vector<FontSourceHandle> MockPlatform::systemFontFallbacksHandle() const {
     std::vector<FontSourceHandle> handles;
 
     handles.emplace_back(DEFAULT);
@@ -95,15 +39,14 @@ std::vector<FontSourceHandle> systemFontFallbacksHandle() {
     return handles;
 }
 
-bool startUrlRequest(const std::string& _url, UrlCallback _callback) {
+bool MockPlatform::startUrlRequest(const std::string& _url, UrlCallback _callback) {
     return true;
 }
 
-void cancelUrlRequest(const std::string& _url) {
-}
+void MockPlatform::cancelUrlRequest(const std::string& _url) {}
 
-void setCurrentThreadPriority(int priority){
-}
+void setCurrentThreadPriority(int priority) {}
 
-void initGLExtensions() {
-}
+void initGLExtensions() {}
+
+} // namespace Tangram

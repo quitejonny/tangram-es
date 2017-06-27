@@ -1,12 +1,12 @@
-#include "tileWorker.h"
+#include "tile/tileWorker.h"
 
+#include "data/tileSource.h"
+#include "log.h"
 #include "platform.h"
-#include "data/dataSource.h"
+#include "tangram.h"
+#include "tile/tileBuilder.h"
 #include "tile/tileID.h"
 #include "tile/tileTask.h"
-#include "tile/tileBuilder.h"
-#include "tangram.h"
-#include "log.h"
 
 #include <algorithm>
 
@@ -14,10 +14,10 @@
 
 namespace Tangram {
 
-TileWorker::TileWorker(int _num_worker) {
+TileWorker::TileWorker(std::shared_ptr<Platform> _platform, int _numWorker) : m_platform(_platform) {
     m_running = true;
 
-    for (int i = 0; i < _num_worker; i++) {
+    for (int i = 0; i < _numWorker; i++) {
         auto worker = std::make_unique<Worker>();
         worker->thread = std::thread(&TileWorker::run, this, worker.get());
         m_workers.push_back(std::move(worker));
@@ -91,14 +91,9 @@ void TileWorker::run(Worker* instance) {
             continue;
         }
 
-        // const clock_t begin = clock();
-
         task->process(*builder);
 
-        // float loadTime = (float(clock() - begin) / CLOCKS_PER_SEC) * 1000;
-        // LOG("loadTime %s - %f", task->tileID.toString().c_str(), loadTime);
-
-        requestRender();
+        m_platform->requestRender();
     }
 }
 
@@ -108,7 +103,7 @@ void TileWorker::setScene(std::shared_ptr<Scene>& _scene) {
     }
 }
 
-void TileWorker::enqueue(std::shared_ptr<TileTask>&& task) {
+void TileWorker::enqueue(std::shared_ptr<TileTask> task) {
     {
         std::unique_lock<std::mutex> lock(m_mutex);
         if (!m_running) {

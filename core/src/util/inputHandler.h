@@ -1,15 +1,18 @@
 #pragma once
 
 #include "view/view.h"
-#include <memory>
+
 #include <bitset>
+#include <memory>
 
 namespace Tangram {
+
+class Platform;
 
 class InputHandler {
 
 public:
-    InputHandler(View& _view);
+    InputHandler(std::shared_ptr<Platform> _platform, View& _view);
 
     void handleTapGesture(float _posX, float _posY);
     void handleDoubleTapGesture(float _posX, float _posY);
@@ -30,6 +33,8 @@ private:
     void setVelocity(float _zoom, glm::vec2 _pan);
 
     void onGesture();
+
+    std::shared_ptr<Platform> m_platform;
 
     View& m_view;
 

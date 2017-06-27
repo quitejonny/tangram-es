@@ -1,21 +1,17 @@
 #pragma once
 
-#include "textUtil.h"
-
-// For textParameters
-#include "style/textStyle.h"
+#include "gl/texture.h"
 #include "labels/textLabel.h"
+#include "style/textStyle.h"
+#include "text/textUtil.h"
 
 #include "alfons/alfons.h"
-#include "alfons/fontManager.h"
 #include "alfons/atlas.h"
+#include "alfons/font.h"
+#include "alfons/fontManager.h"
+#include "alfons/inputSource.h"
 #include "alfons/textBatch.h"
 #include "alfons/textShaper.h"
-#include "alfons/font.h"
-#include "alfons/inputSource.h"
-
-#include "gl/texture.h"
-
 #include <bitset>
 #include <mutex>
 
@@ -69,7 +65,7 @@ public:
 
     static constexpr int max_textures = 64;
 
-    FontContext();
+    FontContext(std::shared_ptr<const Platform> _platform);
 
     void loadFonts();
 
@@ -103,7 +99,7 @@ public:
 
     float maxStrokeWidth() { return m_sdfRadius; }
 
-    bool layoutText(TextStyle::Parameters& _params, const std::string& _text,
+    bool layoutText(TextStyle::Parameters& _params, const icu::UnicodeString& _text,
                     std::vector<GlyphQuad>& _quads, std::bitset<max_textures>& _refs,
                     glm::vec2& _bbox, TextRange& _textRanges);
 
@@ -116,6 +112,10 @@ public:
     void setSceneResourceRoot(const std::string& sceneResourceRoot) { m_sceneResourceRoot = sceneResourceRoot; }
 
     void addFont(const FontDescription& _ft, alfons::InputSource _source);
+
+    void setPixelScale(float _scale);
+
+    void releaseFonts();
 
 private:
 
@@ -143,6 +143,8 @@ private:
     alfons::TextBatch m_batch;
     TextWrapper m_textWrapper;
     std::string m_sceneResourceRoot = "";
+
+    std::shared_ptr<const Platform> m_platform;
 
 };
 

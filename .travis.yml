@@ -9,11 +9,21 @@ branches:
 matrix:
     include:
         - os: linux
+          dist: trusty
           env: PLATFORM=linux CXX=g++-4.9 CC=gcc-4.9
           addons:
             apt:
-              sources: [ 'kubuntu-backports', 'ubuntu-toolchain-r-test', 'george-edison55-precise-backports' ]
-              packages: [ 'cmake', 'gcc-4.9', 'g++-4.9', 'xorg-dev', 'libglu1-mesa-dev' ]
+              sources: [ 'ubuntu-toolchain-r-test' ]
+              packages:
+                  - cmake
+                  - cmake-data
+                  - gcc-4.9
+                  - g++-4.9
+                  - xorg-dev
+                  - libglu1-mesa-dev
+                  - libicu-dev
+                  - libfreetype6-dev
+                  - libharfbuzz-dev
         - os: linux
           env: PLATFORM=android
           addons:
@@ -25,7 +35,7 @@ matrix:
           jdk: oraclejdk8
 
 before_install:
-    - git submodule update --init --recursive
+    - git submodule update --init
     - source ./scripts/travis/before_install.sh
 
 install: ulimit -c

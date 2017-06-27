@@ -1,24 +1,26 @@
 #pragma once
 
 #include "data/tileData.h"
-#include "tile/tileWorker.h"
+#include "data/tileSource.h"
 #include "tile/tile.h"
 #include "tile/tileID.h"
-#include "tileTask.h"
-#include "util/fastmap.h"
+#include "tile/tileTask.h"
+#include "tile/tileWorker.h"
 
 #include <map>
-#include <vector>
 #include <memory>
 #include <mutex>
 #include <tuple>
 #include <set>
-#include <data/dataSource.h>
+#include <vector>
+
+class Platform;
 
 namespace Tangram {
 
-class DataSource;
+class TileSource;
 class TileCache;
+class View;
 struct ViewState;
 
 /* Singleton container of <TileSet>s
@@ -29,19 +31,18 @@ struct ViewState;
 class TileManager {
 
     const static size_t DEFAULT_CACHE_SIZE = 32*1024*1024; // 32 MB
-    const static int MAX_DOWNLOADS = 4;
 
 public:
 
-    TileManager(TileTaskQueue& _tileWorker);
+    TileManager(std::shared_ptr<Platform> platform, TileTaskQueue& _tileWorker);
 
     virtual ~TileManager();
 
-    /* Sets the tile DataSources */
-    void setDataSources(const std::vector<std::shared_ptr<DataSource>>& _sources);
+    /* Sets the tile TileSources */
+    void setTileSources(const std::vector<std::shared_ptr<TileSource>>& _sources);
 
     /* Updates visible tile set and load missing tiles */
-    void updateTileSets(const ViewState& _view, const std::set<TileID>& _visibleTiles);
+    void updateTileSets(const View& _view);
 
     void clearTileSets();
 
@@ -52,11 +53,15 @@ public:
 
     bool hasTileSetChanged() { return m_tileSetChanged; }
 
-    bool hasLoadingTiles() { return m_tilesInProgress > 0; }
+    bool hasLoadingTiles() {
+        return m_tilesInProgress > 0;
+    }
 
-    void addClientDataSource(std::shared_ptr<DataSource> _dataSource);
+    std::shared_ptr<TileSource> getClientTileSource(int32_t sourceID);
 
-    bool removeClientDataSource(DataSource& dataSource);
+    void addClientTileSource(std::shared_ptr<TileSource> _source);
+
+    bool removeClientTileSource(TileSource& _source);
 
     std::unique_ptr<TileCache>& getTileCache() { return m_tileCache; }
 
@@ -67,7 +72,7 @@ public:
      */
     void setCacheSize(size_t _cacheSize);
 
-private:
+protected:
 
     enum class ProxyID : uint8_t {
         no_proxies = 0,
@@ -96,13 +101,27 @@ private:
         uint8_t m_proxies = 0;
 
         bool isReady() { return bool(tile); }
-        bool isLoading() { return bool(task) && !task->isCanceled(); }
-        size_t rastersPending() {
-            if (task) {
-                return (task->source().rasterSources().size() - task->subTasks().size());
+        bool isInProgress() { return bool(task) && !task->isCanceled(); }
+
+        bool needsLoading() {
+            //return !bool(task) || (task->needsLoading() && !task->isCanceled());
+            if (isReady()) { return false; }
+            if (!task) { return true; }
+            if (task->isCanceled()) { return false; }
+            if (task->needsLoading()) { return true; }
+
+            for (auto& subtask : task->subTasks()) {
+                if (subtask->needsLoading()) { return true; }
             }
-            return 0;
+            return false;
         }
+
+        // size_t rastersPending() {
+        //     if (task) {
+        //         return (task->source().rasterSources().size() - task->subTasks().size());
+        //     }
+        //     return 0;
+        // }
         bool isCanceled() { return bool(task) && task->isCanceled(); }
 
         // New Data only when
@@ -112,7 +131,7 @@ private:
         bool newData() {
             if (bool(task) && task->isReady()) {
 
-                if (rastersPending()) { return false; }
+                //if (rastersPending()) { return false; }
 
                 for (auto& rTask : task->subTasks()) {
                     if (!rTask->isReady()) { return false; }
@@ -173,22 +192,23 @@ private:
     };
 
     struct TileSet {
-        TileSet(std::shared_ptr<DataSource> _source, bool _clientDataSource)
-            : source(_source), clientDataSource(_clientDataSource) {}
+        TileSet(std::shared_ptr<TileSource> _source, bool _clientSource)
+            : source(_source), clientTileSource(_clientSource) {}
 
-        std::shared_ptr<DataSource> source;
+        std::shared_ptr<TileSource> source;
+
+        std::set<TileID> visibleTiles;
         std::map<TileID, TileEntry> tiles;
+
         int64_t sourceGeneration = 0;
-        bool clientDataSource;
+        bool clientTileSource;
     };
 
-    void updateTileSet(TileSet& tileSet, const ViewState& _view, const std::set<TileID>& _visibleTiles);
+    void updateTileSet(TileSet& tileSet, const ViewState& _view);
 
     void enqueueTask(TileSet& _tileSet, const TileID& _tileID, const ViewState& _view);
 
     void loadTiles();
-    void loadSubTasks(std::vector<std::shared_ptr<DataSource>>& subSources, std::shared_ptr<TileTask>& tileTask,
-                      const TileID& tileID);
 
     /*
      * Constructs a future (async) to load data of a new visible tile this is
@@ -215,7 +235,6 @@ private:
      */
     void clearProxyTiles(TileSet& _tileSet, const TileID& _tileID, TileEntry& _tile, std::vector<TileID>& _removes);
 
-    int32_t m_loadPending = 0;
     int32_t m_tilesInProgress = 0;
 
     std::vector<TileSet> m_tileSets;
@@ -229,7 +248,7 @@ private:
 
     bool m_tileSetChanged = false;
 
-    /* Callback for DataSource:
+    /* Callback for TileSource:
      * Passes TileTask back with data for further processing by <TileWorker>s
      */
     TileTaskCb m_dataCallback;

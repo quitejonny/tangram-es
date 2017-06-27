@@ -1,6 +1,7 @@
 #pragma once
 
-#include "pointLight.h"
+#include "scene/pointLight.h"
+
 #include "glm/vec3.hpp"
 
 namespace Tangram {
@@ -19,12 +20,13 @@ public:
 
     virtual void setCutoffExponent(float _exponent);
 
-    virtual void setupProgram(RenderState& rs, const View& _view, LightUniforms& _uniforms) override;
+    virtual void setupProgram(RenderState& rs, const View& _view, ShaderProgram& _shader,
+                              LightUniforms& _uniforms) override;
 
     struct Uniforms : public PointLight::Uniforms {
 
-        Uniforms(ShaderProgram& _shader, const std::string& _name)
-            : PointLight::Uniforms(_shader, _name),
+        Uniforms(const std::string& _name)
+            : PointLight::Uniforms(_name),
             direction(_name+".direction"),
             spotCosCutoff(_name+".spotCosCutoff"),
             spotExponent(_name+".spotExponent") {}
@@ -34,7 +36,7 @@ public:
         UniformLocation spotExponent;
     };
 
-    std::unique_ptr<LightUniforms> injectOnProgram(ShaderProgram& _shader) override;
+    std::unique_ptr<LightUniforms> getUniforms() override;
 
 protected:
     /*  GLSL block code with structs and need functions for this light type */

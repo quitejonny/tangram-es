@@ -1,11 +1,10 @@
-#include "pointLight.h"
+#include "scene/pointLight.h"
 
-#include "glm/gtx/string_cast.hpp"
-#include "platform.h"
 #include "gl/shaderProgram.h"
+#include "platform.h"
+#include "pointLight_glsl.h"
+#include "util/floatFormatter.h"
 #include "view/view.h"
-
-#include "shaders/pointLight_glsl.h"
 
 namespace Tangram {
 
@@ -40,16 +39,16 @@ void PointLight::setRadius(float _inner, float _outer) {
     m_outerRadius = _outer;
 }
 
-std::unique_ptr<LightUniforms> PointLight::injectOnProgram(ShaderProgram& _shader) {
-    injectSourceBlocks(_shader);
+std::unique_ptr<LightUniforms> PointLight::getUniforms() {
 
     if (!m_dynamic) { return nullptr; }
 
-    return std::make_unique<Uniforms>(_shader, getUniformName());
+    return std::make_unique<Uniforms>(getUniformName());
 }
 
-void PointLight::setupProgram(RenderState& rs, const View& _view, LightUniforms& _uniforms) {
-    Light::setupProgram(rs, _view, _uniforms);
+void PointLight::setupProgram(RenderState& rs, const View& _view, ShaderProgram& _shader,
+                              LightUniforms& _uniforms) {
+    Light::setupProgram(rs, _view, _shader, _uniforms);
 
     glm::vec4 position = glm::vec4(m_position.value, 0.0);
 
@@ -82,18 +81,18 @@ void PointLight::setupProgram(RenderState& rs, const View& _view, LightUniforms&
 
     auto& u = static_cast<Uniforms&>(_uniforms);
 
-    u.shader.setUniformf(rs, u.position, position);
+    _shader.setUniformf(rs, u.position, position);
 
     if (m_attenuation != 0.0) {
-        u.shader.setUniformf(rs, u.attenuation, m_attenuation);
+        _shader.setUniformf(rs, u.attenuation, m_attenuation);
     }
 
     if (m_innerRadius != 0.0) {
-        u.shader.setUniformf(rs, u.innerRadius, m_innerRadius);
+        _shader.setUniformf(rs, u.innerRadius, m_innerRadius);
     }
 
     if (m_outerRadius != 0.0) {
-        u.shader.setUniformf(rs, u.outerRadius, m_outerRadius);
+        _shader.setUniformf(rs, u.outerRadius, m_outerRadius);
     }
 }
 
@@ -121,15 +120,15 @@ std::string PointLight::getInstanceDefinesBlock() {
 std::string PointLight::getInstanceAssignBlock() {
     std::string block = Light::getInstanceAssignBlock();
     if (!m_dynamic) {
-        block += ", " + glm::to_string(m_position.value);
+        block += ", " + ff::to_string(m_position.value);
         if (m_attenuation!=0.0) {
-            block += ", " + std::to_string(m_attenuation);
+            block += ", " + ff::to_string(m_attenuation);
         }
         if (m_innerRadius!=0.0) {
-            block += ", " + std::to_string(m_innerRadius);
+            block += ", " + ff::to_string(m_innerRadius);
         }
         if (m_outerRadius!=0.0) {
-            block += ", " + std::to_string(m_outerRadius);
+            block += ", " + ff::to_string(m_outerRadius);
         }
         block += ")";
     }

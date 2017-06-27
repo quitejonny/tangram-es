@@ -6,7 +6,7 @@
 #include "scene/scene.h"
 #include "scene/styleContext.h"
 #include "util/builders.h"
-#include "platform.h"
+#include "platform_mock.h"
 
 using namespace Tangram;
 
@@ -217,8 +217,30 @@ TEST_CASE( "Test evalStyleFn - StyleParamKey::extrude", "[Duktape][evalStyleFn]"
 
 }
 
+TEST_CASE( "Test evalStyleFn - StyleParamKey::text_source", "[Duktape][evalStyleFn]") {
+    Feature feat;
+    feat.props.set("name", "my name is my name");
+
+    StyleContext ctx;
+    ctx.setFeature(feat);
+    REQUIRE(ctx.setFunctions({
+                R"(function () { return 'hello!'; })",
+                R"(function () { return feature.name; })"}));
+
+    StyleParam::Value value;
+
+    REQUIRE(ctx.evalStyle(0, StyleParamKey::text_source, value) == true);
+    REQUIRE(value.is<std::string>());
+    REQUIRE(value.get<std::string>() == "hello!");
+
+    REQUIRE(ctx.evalStyle(1, StyleParamKey::text_source, value) == true);
+    REQUIRE(value.is<std::string>());
+    REQUIRE(value.get<std::string>() == "my name is my name");
+}
+
 TEST_CASE( "Test evalFilter - Init filter function from yaml", "[Duktape][evalFilter]") {
-    Scene scene;
+    std::shared_ptr<Platform> platform = std::make_shared<MockPlatform>();
+    Scene scene(platform);
     YAML::Node n0 = YAML::Load(R"(filter: function() { return feature.sort_key === 2; })");
     YAML::Node n1 = YAML::Load(R"(filter: function() { return feature.name === 'test'; })");
 
@@ -260,7 +282,8 @@ TEST_CASE( "Test evalFilter - Init filter function from yaml", "[Duktape][evalFi
 }
 
 TEST_CASE("Test evalStyle - Init StyleParam function from yaml", "[Duktape][evalStyle]") {
-    std::shared_ptr<Scene> scene = std::make_shared<Scene>();
+    std::shared_ptr<Platform> platform = std::make_shared<MockPlatform>();
+    std::shared_ptr<Scene> scene = std::make_shared<Scene>(platform);
     YAML::Node n0 = YAML::Load(R"(
             draw:
                 color: function() { return '#ffff00ff'; }
@@ -308,7 +331,8 @@ TEST_CASE("Test evalStyle - Init StyleParam function from yaml", "[Duktape][eval
 }
 
 TEST_CASE( "Test evalFunction explicit", "[Duktape][evalFunction]") {
-    std::shared_ptr<Scene> scene = std::make_shared<Scene>();
+    std::shared_ptr<Platform> platform = std::make_shared<MockPlatform>();
+    std::shared_ptr<Scene> scene = std::make_shared<Scene>(platform);
     YAML::Node n0 = YAML::Load(R"(
             global:
                 width: 2

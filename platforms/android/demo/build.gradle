@@ -1,0 +1,35 @@
+apply plugin: 'com.android.application'
+
+android {
+  compileSdkVersion 25
+  buildToolsVersion '25.0.2'
+
+  def apiKey = project.hasProperty('mapzenApiKey') ? mapzenApiKey : System.getenv('MAPZEN_API_KEY')
+
+  assert apiKey != null : "To run the demo, you must provide a Mapzen API key as an environment\
+    variable named 'MAPZEN_API_KEY' or a Gradle property named 'mapzenApiKey'"
+
+  defaultConfig {
+    minSdkVersion 15
+    targetSdkVersion 25
+    buildConfigField 'String', 'MAPZEN_API_KEY', '"' + apiKey + '"'
+  }
+
+  sourceSets.main {
+    assets.srcDirs = ['../../../scenes']
+  }
+
+  aaptOptions.ignoreAssetsPattern "!*.ttf"
+
+  buildTypes {
+    debug {
+      debuggable true
+      jniDebuggable true
+    }
+  }
+}
+
+dependencies {
+  compile project(path: ':tangram')
+  compile 'com.android.support:design:25.3.1'
+}

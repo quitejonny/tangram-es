@@ -1,11 +1,11 @@
 #pragma once
 
-#include "glm/mat4x4.hpp"
-#include "glm/vec2.hpp"
 #include "gl/texture.h"
 #include "tile/tileID.h"
 #include "util/fastmap.h"
 
+#include "glm/mat4x4.hpp"
+#include "glm/vec2.hpp"
 #include <map>
 #include <memory>
 #include <string>
@@ -13,7 +13,7 @@
 
 namespace Tangram {
 
-class DataSource;
+class TileSource;
 class MapProjection;
 struct Properties;
 class Style;
@@ -40,7 +40,7 @@ class Tile {
 
 public:
 
-    Tile(TileID _id, const MapProjection& _projection, const DataSource* _source = nullptr);
+    Tile(TileID _id, const MapProjection& _projection, const TileSource* _source = nullptr);
 
 
     virtual ~Tile();
@@ -64,7 +64,7 @@ public:
 
     const glm::mat4& mvp() const { return m_mvp; }
 
-    glm::dvec2 coordToLngLat(const glm::vec2& _tileCoord, const MapProjection& _projection) const;
+    glm::dvec2 coordToLngLat(const glm::vec2& _tileCoord) const;
 
     void initGeometry(uint32_t _size);
 
@@ -110,10 +110,10 @@ private:
 
     float m_inverseScale = 1;
 
-    /* ID of the DataSource */
+    /* ID of the TileSource */
     const int32_t m_sourceId;
 
-    /* State of the DataSource for which this tile was created */
+    /* State of the TileSource for which this tile was created */
     const int64_t m_sourceGeneration;
 
     bool m_proxyState = false;

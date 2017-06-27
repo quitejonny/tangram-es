@@ -1,9 +1,10 @@
 include(${CMAKE_SOURCE_DIR}/toolchains/iOS.toolchain.cmake)
 
-message(STATUS "Build for iOS archs " ${CMAKE_OSX_ARCHITECTURES})
+set(FRAMEWORK_VERSION "0.7.2-dev")
+
+message(STATUS "Build for iOS archs " ${IOS_ARCH})
 
 set(FRAMEWORK_NAME TangramMap)
-set(FRAMEWORK_VERSION "1.0")
 
 add_definitions(-DPLATFORM_IOS)
 
@@ -25,64 +26,78 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}
 
 if(${IOS_PLATFORM} STREQUAL "SIMULATOR")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mios-simulator-version-min=6.0")
-    set(ARCH "i386 x86_64")
 else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-    set(ARCH "armv7 armv7s arm64")
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fembed-bitcode")
+        add_compile_options("-fembed-bitcode")
+    endif()
 endif()
 
 set(FRAMEWORKS CoreGraphics CoreFoundation QuartzCore UIKit OpenGLES Security CFNetwork GLKit)
 
+# Tell SQLiteCpp to not build its own copy of SQLite, we will use the system library instead.
+set(SQLITECPP_INTERNAL_SQLITE OFF CACHE BOOL "")
+
 # load core library
-add_subdirectory(${PROJECT_SOURCE_DIR}/external)
 add_subdirectory(${PROJECT_SOURCE_DIR}/core)
 
 set(SOURCES
-    ${PROJECT_SOURCE_DIR}/core/common/platform_gl.cpp
-    ${PROJECT_SOURCE_DIR}/ios/src/platform_ios.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGHelpers.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGFontConverter.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGGeoPolyline.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGGeoPolygon.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGHttpHandler.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGSceneUpdate.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGLabelPickResult.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGMarkerPickResult.mm
-    ${PROJECT_SOURCE_DIR}/ios/src/TGMapViewController.mm)
+    ${PROJECT_SOURCE_DIR}/platforms/common/platform_gl.cpp
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/platform_ios.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGHelpers.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGFontConverter.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGGeoPolyline.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGGeoPolygon.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGHttpHandler.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMapData.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGSceneUpdate.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGLabelPickResult.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMarkerPickResult.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMarker.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGTypes.mm
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMapViewController.mm)
 
 set(FRAMEWORK_HEADERS
-    ${PROJECT_SOURCE_DIR}/ios/framework/TangramMap.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGGeoPolyline.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGGeoPolygon.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGGeoPoint.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGSceneUpdate.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGHttpHandler.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGLabelPickResult.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGMarkerPickResult.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGMapViewController.h)
+    ${PROJECT_SOURCE_DIR}/platforms/ios/framework/TangramMap.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGGeoPolyline.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGGeoPolygon.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGGeoPoint.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMarker.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGSceneUpdate.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMapData.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGTypes.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGHttpHandler.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGLabelPickResult.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMarkerPickResult.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMapViewController.h)
 
 set(HEADERS
-    ${PROJECT_SOURCE_DIR}/ios/src/platform_ios.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGHelpers.h
-    ${PROJECT_SOURCE_DIR}/ios/src/TGFontConverter.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/platform_ios.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMarkerPickResult+Internal.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGLabelPickResult+Internal.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMapViewController+Internal.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMapData+Internal.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGMarker+Internal.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGHelpers.h
+    ${PROJECT_SOURCE_DIR}/platforms/ios/src/TangramMap/TGFontConverter.h
     ${FRAMEWORK_HEADERS})
 
 # add_bundle_resources(RESOURCES "${PROJECT_SOURCE_DIR}/scenes/fonts" "./fonts")
-add_bundle_resources(RESOURCES "${PROJECT_SOURCE_DIR}/ios/framework/Modules" "./Modules")
+add_bundle_resources(RESOURCES "${PROJECT_SOURCE_DIR}/platforms/ios/framework/Modules" "./Modules")
 
 add_library(${FRAMEWORK_NAME} SHARED ${SOURCES} ${HEADERS} ${RESOURCES})
 target_link_libraries(${FRAMEWORK_NAME} ${CORE_LIBRARY})
 
-set(IOS_FRAMEWORK_RESOURCES ${PROJECT_SOURCE_DIR}/ios/framework/Info.plist)
+# Link with SQLite, needed for MBTiles access.
+target_link_libraries(${FRAMEWORK_NAME} sqlite3)
+
+set(IOS_FRAMEWORK_RESOURCES ${PROJECT_SOURCE_DIR}/platforms/ios/framework/Info.plist)
 
 set_target_properties(${FRAMEWORK_NAME} PROPERTIES
     CLEAN_DIRECT_OUTPUT 1
     FRAMEWORK TRUE
-    FRAMEWORK_VERSION ${FRAMEWORK_VERSION}
     MACOSX_FRAMEWORK_IDENTIFIER com.mapzen.tangramMap
     MACOSX_FRAMEWORK_INFO_PLIST ${IOS_FRAMEWORK_RESOURCES}
-    #VERSION 1.0.0
-    #SOVERSION 1.0.0
     PUBLIC_HEADER "${FRAMEWORK_HEADERS}"
     RESOURCE "${IOS_FRAMEWORK_RESOURCES}"
     )
@@ -92,11 +107,33 @@ set_xcode_property(${FRAMEWORK_NAME} CODE_SIGNING_REQUIRED "NO")
 set_xcode_property(${FRAMEWORK_NAME} CODE_SIGN_ENTITLEMENTS "")
 set_xcode_property(${FRAMEWORK_NAME} CODE_SIGNING_ALLOWED "NO")
 
-set_xcode_property(${FRAMEWORK_NAME} ENABLE_BITCODE "YES")
+if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+    set_xcode_property(${FRAMEWORK_NAME} GCC_GENERATE_DEBUGGING_SYMBOLS NO)
+    set_xcode_property(${FRAMEWORK_NAME} DEPLOYMENT_POSTPROCESSING YES)
+    set_xcode_property(${FRAMEWORK_NAME} COPY_PHASE_STRIP NO)
+    set_xcode_property(${FRAMEWORK_NAME} STRIP_INSTALLED_PRODUCT YES)
+    set_xcode_property(${FRAMEWORK_NAME} STRIP_STYLE non-global)
+    set_xcode_property(${FRAMEWORK_NAME} SEPARATE_STRIP YES)
+    set_xcode_property(${FRAMEWORK_NAME} DEAD_CODE_STRIPPING YES)
+else()
+    set_xcode_property(${FRAMEWORK_NAME} GCC_GENERATE_DEBUGGING_SYMBOLS YES)
+endif()
+
+if(${IOS_PLATFORM} STREQUAL "SIMULATOR")
+    # properties for simulator architectures
+else()
+    if(${CMAKE_BUILD_TYPE} STREQUAL "Release")
+        set_xcode_property(${FRAMEWORK_NAME} ENABLE_BITCODE "YES")
+        set_xcode_property(${FRAMEWORK_NAME} BITCODE_GENERATION_MODE bitcode)
+    endif()
+endif()
+
 set_xcode_property(${FRAMEWORK_NAME} SUPPORTED_PLATFORMS "iphonesimulator iphoneos")
 set_xcode_property(${FRAMEWORK_NAME} ONLY_ACTIVE_ARCH "NO")
-set_xcode_property(${FRAMEWORK_NAME} VALID_ARCHS "${ARCH}")
-set_xcode_property(${FRAMEWORK_NAME} ARCHS "${ARCH}")
+set_xcode_property(${FRAMEWORK_NAME} VALID_ARCHS "${IOS_ARCH}")
+set_xcode_property(${FRAMEWORK_NAME} ARCHS "${IOS_ARCH}")
+set_xcode_property(${FRAMEWORK_NAME} DEFINES_MODULE "YES")
+set_xcode_property(${FRAMEWORK_NAME} CURRENT_PROJECT_VERSION "${FRAMEWORK_VERSION}")
 
 # Set RPATH to be within the application /Frameworks directory
 set_xcode_property(${FRAMEWORK_NAME} LD_DYLIB_INSTALL_NAME "@rpath/${FRAMEWORK_NAME}.framework/${FRAMEWORK_NAME}")

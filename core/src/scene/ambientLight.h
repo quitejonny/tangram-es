@@ -1,6 +1,6 @@
 #pragma once
 
-#include "light.h"
+#include "scene/light.h"
 
 namespace Tangram {
 
@@ -9,10 +9,11 @@ public:
 
     AmbientLight(const std::string& _name, bool _dynamic = false);
     virtual ~AmbientLight();
-    
-    virtual void setupProgram(RenderState& rs, const View& _view, LightUniforms& _uniforms) override;
 
-    std::unique_ptr<LightUniforms> injectOnProgram(ShaderProgram& _shader) override;
+    virtual void setupProgram(RenderState& rs, const View& _view, ShaderProgram& _shader,
+                              LightUniforms& _uniforms) override;
+
+    std::unique_ptr<LightUniforms> getUniforms() override;
 
 protected:
 
@@ -25,7 +26,7 @@ protected:
 private:
 
     static std::string s_typeName;
-    
+
 };
 
 }

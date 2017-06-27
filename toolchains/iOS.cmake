@@ -14,12 +14,19 @@ message(STATUS "Building for architectures " ${ARCH})
 set(IOS_EXTENSIONS_FILES *.mm *.cpp *.m)
 foreach(_ext ${IOS_EXTENSIONS_FILES})
     find_sources_and_include_directories(
-        ${PROJECT_SOURCE_DIR}/ios/demo/src/*.h
-        ${PROJECT_SOURCE_DIR}/ios/demo/src/${_ext})
+        ${PROJECT_SOURCE_DIR}/platforms/ios/demo/src/*.h
+        ${PROJECT_SOURCE_DIR}/platforms/ios/demo/src/${_ext})
 endforeach()
 
-add_bundle_resources(IOS_DEMO_RESOURCES "${PROJECT_SOURCE_DIR}/ios/demo/resources/" "Resources")
-file(GLOB_RECURSE IOS_DEMO_SOURCES ${PROJECT_SOURCE_DIR}/ios/demo/src/**)
+get_mapzen_api_key(MAPZEN_API_KEY)
+add_definitions(-DMAPZEN_API_KEY="${MAPZEN_API_KEY}")
+
+# Generate demo app configuration plist file to inject API key
+configure_file(${PROJECT_SOURCE_DIR}/platforms/ios/demo/Config.plist.in
+    ${PROJECT_SOURCE_DIR}/platforms/ios/demo/resources/Config.plist)
+
+add_bundle_resources(IOS_DEMO_RESOURCES "${PROJECT_SOURCE_DIR}/platforms/ios/demo/resources/" "Resources")
+file(GLOB_RECURSE IOS_DEMO_SOURCES ${PROJECT_SOURCE_DIR}/platforms/ios/demo/src/**)
 
 add_executable(${EXECUTABLE_NAME} MACOSX_BUNDLE ${HEADERS} ${SOURCES}
     ${RESOURCES} ${IOS_DEMO_RESOURCES} ${TANGRAM_FRAMEWORK})
@@ -28,7 +35,7 @@ target_link_libraries(${EXECUTABLE_NAME} ${TANGRAM_FRAMEWORK})
 
 # setting xcode properties
 set_target_properties(${EXECUTABLE_NAME} PROPERTIES
-    MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/ios/demo/resources/tangram-Info.plist
+    MACOSX_BUNDLE_INFO_PLIST ${PROJECT_SOURCE_DIR}/platforms/ios/demo/Info.plist
     MACOSX_FRAMEWORK_IDENTIFIER "com.mapzen.\${PRODUCT_NAME:{EXECUTABLE_NAME}}"
     RESOURCE "${IOS_DEMO_RESOURCES}")
 

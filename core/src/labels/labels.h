@@ -1,18 +1,20 @@
 #pragma once
 
-#include "label.h"
-#include "spriteLabel.h"
-#include "tile/tileID.h"
 #include "data/properties.h"
-#include "isect2d.h"
-#include "glm_vec.h" // for isect2d.h
+#include "labels/label.h"
+#include "labels/screenTransform.h"
+#include "labels/spriteLabel.h"
+#include "tile/tileID.h"
 
+#include "glm_vec.h" // for isect2d.h
+#include "isect2d.h"
+
+#include <map>
 #include <memory>
 #include <mutex>
-#include <vector>
-#include <map>
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
+#include <vector>
 
 #define PERF_TRACE __attribute__ ((noinline))
 
@@ -22,7 +24,8 @@ class FontContext;
 class Marker;
 class Tile;
 class Style;
-class TileCache;
+class Scene;
+class TileManager;
 
 class Labels {
 
@@ -34,16 +37,19 @@ public:
     void drawDebug(RenderState& rs, const View& _view);
 
     void updateLabelSet(const ViewState& _viewState, float _dt,
-                        const std::vector<std::unique_ptr<Style>>& _styles,
+                        const std::shared_ptr<Scene>& _scene,
                         const std::vector<std::shared_ptr<Tile>>& _tiles,
                         const std::vector<std::unique_ptr<Marker>>& _markers,
-                        TileCache& _cache);
+                        TileManager& tileManager);
 
+    /* onlyRender: when the view and tiles have not changed one does not need to update the set of
+     * active labels. We just need to render these the labels in this case
+     */
     PERF_TRACE void updateLabels(const ViewState& _viewState, float _dt,
                                  const std::vector<std::unique_ptr<Style>>& _styles,
                                  const std::vector<std::shared_ptr<Tile>>& _tiles,
                                  const std::vector<std::unique_ptr<Marker>>& _markers,
-                                 bool _onlyTransitions = true);
+                                 bool _onlyRender = true);
 
     bool needUpdate() const { return m_needUpdate; }
 
@@ -56,9 +62,9 @@ protected:
     using CollisionPairs = std::vector<isect2d::ISect2D<glm::vec2>::Pair>;
 
 
-    void skipTransitions(const std::vector<std::unique_ptr<Style>>& _styles,
+    void skipTransitions(const std::shared_ptr<Scene>& _scene,
                          const std::vector<std::shared_ptr<Tile>>& _tiles,
-                         TileCache& _cache, float _currentZoom) const;
+                         TileManager& _tileManager, float _currentZoom) const;
 
     PERF_TRACE void skipTransitions(const std::vector<const Style*>& _styles, Tile& _tile, Tile& _proxy) const;
 
@@ -70,7 +76,7 @@ protected:
 
     void processLabelUpdate(const ViewState& viewState, StyledMesh* mesh, Tile* tile,
                             const glm::mat4& mvp, float dt, bool drawAll,
-                            bool onlyTransitions, bool isProxy);
+                            bool onlyRender, bool isProxy);
 
     bool m_needUpdate;
 
@@ -78,19 +84,26 @@ protected:
 
     struct LabelEntry {
 
-        LabelEntry(Label* _label, Tile* _tile, bool _proxy)
+        LabelEntry(Label* _label, Tile* _tile, bool _proxy, Range _screenTransform)
             : label(_label),
               tile(_tile),
               priority(_label->options().priority),
-              proxy(_proxy) {}
+              proxy(_proxy),
+              transformRange(_screenTransform) {}
 
         Label* label;
         Tile* tile;
         float priority;
         bool proxy;
+
+        Range transformRange;
+        Range obbsRange;
     };
 
     static bool labelComparator(const LabelEntry& _a, const LabelEntry& _b);
+
+    std::vector<OBB> m_obbs;
+    ScreenTransform::Buffer m_transforms;
 
     std::vector<LabelEntry> m_labels;
     std::vector<LabelEntry> m_selectionLabels;

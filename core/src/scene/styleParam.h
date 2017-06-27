@@ -2,6 +2,7 @@
 
 #include "labels/labelProperty.h"
 #include "util/variant.h"
+
 #include "glm/vec2.hpp"
 #include <string>
 #include <vector>
@@ -14,14 +15,15 @@ enum class StyleParamKey : uint8_t {
     text_align,
     anchor,
     angle,
+    buffer,
     text_anchor,
     cap,
-    centroid,
     collide,
     text_collide,
     color,
     extrude,
     flat,
+    text_buffer,
     text_font_family,
     text_font_fill,
     text_font_size,
@@ -45,7 +47,12 @@ enum class StyleParamKey : uint8_t {
     outline_width,
     outline_style,
     outline_visible,
+    placement,
+    placement_spacing,
+    placement_min_length_ratio,
     priority,
+    repeat_distance,
+    repeat_group,
     text_order,
     text_priority,
     text_repeat_distance,
@@ -55,13 +62,15 @@ enum class StyleParamKey : uint8_t {
     sprite_default,
     style,
     text_source,
+    text_source_left,
+    text_source_right,
     text_wrap,
     tile_edges,
     text_transform,
     transition_hide_time,
     transition_selected_time,
     transition_show_time,
-    text_required,
+    text_optional,
     text_transition_hide_time,
     text_transition_selected_time,
     text_transition_show_time,
@@ -134,7 +143,16 @@ struct StyleParam {
         }
     };
 
-    using Value = variant<Undefined, none_type, bool, float, uint32_t, std::string, glm::vec2, Width, LabelProperty::Anchors>;
+
+    struct TextSource {
+        std::vector<std::string> keys;
+        bool operator==(const TextSource& _other) const {
+            return keys == _other.keys;
+        }
+    };
+
+    using Value = variant<none_type, Undefined, bool, float, uint32_t, std::string, glm::vec2, Width,
+                          LabelProperty::Placement, LabelProperty::Anchors, TextSource>;
 
     StyleParam() :
         key(StyleParamKey::none),
@@ -171,8 +189,8 @@ struct StyleParam {
     static bool parseTime(const std::string& _value, float& _time);
 
     // values within _value string parameter must be delimited by ','
-    static bool parseVec2(const std::string& _value, const std::vector<Unit> _allowedUnits, UnitVec<glm::vec2>& _vec2);
-    static bool parseVec3(const std::string& _value, const std::vector<Unit> _allowedUnits, UnitVec<glm::vec3>& _vec3);
+    static bool parseVec2(const std::string& _value, const std::vector<Unit>& _allowedUnits, UnitVec<glm::vec2>& _vec2);
+    static bool parseVec3(const std::string& _value, const std::vector<Unit>& _allowedUnits, UnitVec<glm::vec3>& _vec3);
 
     static int parseValueUnitPair(const std::string& _value, size_t start,
                                   StyleParam::ValueUnitPair& _result);
@@ -183,6 +201,7 @@ struct StyleParam {
     static bool isSize(StyleParamKey _key);
     static bool isWidth(StyleParamKey _key);
     static bool isOffsets(StyleParamKey _key);
+    static bool isNumberType(StyleParamKey _key);
     static bool isFontSize(StyleParamKey _key);
     static bool isRequired(StyleParamKey _key);
 

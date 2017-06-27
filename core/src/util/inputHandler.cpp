@@ -1,8 +1,9 @@
-#include "inputHandler.h"
+#include "util/inputHandler.h"
 
-#include "glm/vec2.hpp"
-#include "glm/gtx/rotate_vector.hpp"
 #include "platform.h"
+
+#include "glm/gtx/rotate_vector.hpp"
+#include "glm/vec2.hpp"
 #include <cmath>
 
 // Damping factor for translation; reciprocal of the decay period in seconds
@@ -25,7 +26,7 @@
 
 namespace Tangram {
 
-InputHandler::InputHandler(View& _view) : m_view(_view) {}
+InputHandler::InputHandler(std::shared_ptr<Platform> _platform, View& _view) : m_platform(_platform), m_view(_view) {}
 
 void InputHandler::update(float _dt) {
 
@@ -42,7 +43,7 @@ void InputHandler::update(float _dt) {
         m_velocityZoom -= _dt * DAMPING_ZOOM * m_velocityZoom;
         m_view.zoom(m_velocityZoom * _dt);
 
-        requestRender();
+        m_platform->requestRender();
     }
 }
 
@@ -50,8 +51,8 @@ void InputHandler::handleTapGesture(float _posX, float _posY) {
 
     onGesture();
 
-    double viewCenterX = 0.5 * m_view.getWidth();
-    double viewCenterY = 0.5 * m_view.getHeight();
+    float viewCenterX = 0.5f * m_view.getWidth();
+    float viewCenterY = 0.5f * m_view.getHeight();
 
     m_view.screenToGroundPlane(viewCenterX, viewCenterY);
     m_view.screenToGroundPlane(_posX, _posY);
@@ -161,7 +162,7 @@ void InputHandler::cancelFling() {
 void InputHandler::onGesture() {
 
     setVelocity(0.f, { 0.f, 0.f });
-    requestRender();
+    m_platform->requestRender();
 
 }
 

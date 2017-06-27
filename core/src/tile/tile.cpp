@@ -1,16 +1,16 @@
-#include "tile.h"
+#include "tile/tile.h"
 
-#include "data/dataSource.h"
-#include "style/style.h"
-#include "view/view.h"
-#include "tile/tileID.h"
+#include "data/tileSource.h"
 #include "labels/labelSet.h"
+#include "style/style.h"
+#include "tile/tileID.h"
+#include "view/view.h"
 
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace Tangram {
 
-Tile::Tile(TileID _id, const MapProjection& _projection, const DataSource* _source) :
+Tile::Tile(TileID _id, const MapProjection& _projection, const TileSource* _source) :
     m_id(_id),
     m_projection(&_projection),
     m_sourceId(_source ? _source->id() : 0),
@@ -28,11 +28,11 @@ Tile::Tile(TileID _id, const MapProjection& _projection, const DataSource* _sour
 }
 
 
-glm::dvec2 Tile::coordToLngLat(const glm::vec2& _tileCoord, const MapProjection& _projection) const {
+glm::dvec2 Tile::coordToLngLat(const glm::vec2& _tileCoord) const {
     double scale = 1.0 / m_inverseScale;
 
     glm::dvec2 meters = glm::dvec2(_tileCoord) * scale + m_tileOrigin;
-    glm::dvec2 degrees = _projection.MetersToLonLat(meters);
+    glm::dvec2 degrees = m_projection->MetersToLonLat(meters);
 
     return {degrees.x, degrees.y};
 }

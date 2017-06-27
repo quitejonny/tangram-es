@@ -1,18 +1,18 @@
-#include "debugStyle.h"
+#include "style/debugStyle.h"
 
-#include "tangram.h"
-#include "platform.h"
-#include "material.h"
-#include "tile/tile.h"
-#include "gl/shaderProgram.h"
 #include "gl/mesh.h"
+#include "gl/shaderProgram.h"
+#include "platform.h"
+#include "tangram.h"
+#include "tile/tile.h"
+#include "style/material.h"
 
-#include <vector>
 #include <memory>
+#include <vector>
 #include <string>
 
-#include "shaders/debug_vs.h"
-#include "shaders/debug_fs.h"
+#include "debug_vs.h"
+#include "debug_fs.h"
 
 namespace Tangram {
 
@@ -38,8 +38,8 @@ void DebugStyle::constructVertexLayout() {
 
 void DebugStyle::constructShaderProgram() {
 
-    m_shaderProgram->setSourceStrings(SHADER_SOURCE(debug_fs),
-                                      SHADER_SOURCE(debug_vs));
+    m_shaderSource->setSourceStrings(SHADER_SOURCE(debug_fs),
+                                     SHADER_SOURCE(debug_vs));
 
 }
 
@@ -72,8 +72,7 @@ struct DebugStyleBuilder : public StyleBuilder {
 
     const Style& style() const override { return m_style; }
 
-    DebugStyleBuilder(const DebugStyle& _style)
-        : StyleBuilder(_style), m_style(_style) {}
+    DebugStyleBuilder(const DebugStyle& _style) : m_style(_style) {}
 
 };
 

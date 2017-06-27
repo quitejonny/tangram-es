@@ -3,8 +3,9 @@
 #include "style/style.h"
 #include "style/pointStyle.h"
 #include "style/textStyleBuilder.h"
-#include <vector>
+#include <map>
 #include <memory>
+#include <vector>
 
 namespace Tangram {
 
@@ -34,13 +35,17 @@ struct PointStyleBuilder : public StyleBuilder {
 
     const Style& style() const override { return m_style; }
 
-    PointStyleBuilder(const PointStyle& _style) : StyleBuilder(_style), m_style(_style) {
+    PointStyleBuilder(const PointStyle& _style) : m_style(_style) {
         m_textStyleBuilder = m_style.textStyle().createBuilder();
     }
 
     bool getUVQuad(PointStyle::Parameters& _params, glm::vec4& _quad) const;
 
     PointStyle::Parameters applyRule(const DrawRule& _rule, const Properties& _props) const;
+
+    // Gets points for label placement and appropriate angle for each label (if `auto` angle is set)
+    void labelPointsPlacing(const Line& _line, const glm::vec4& _quad,
+                            PointStyle::Parameters& _params, const DrawRule& _rule);
 
     void addLabel(const Point& _point, const glm::vec4& _quad,
                   const PointStyle::Parameters& _params, const DrawRule& _rule);
@@ -50,12 +55,16 @@ struct PointStyleBuilder : public StyleBuilder {
     bool addFeature(const Feature& _feat, const DrawRule& _rule) override;
 
 private:
+
+
     std::vector<std::unique_ptr<Label>> m_labels;
     std::vector<SpriteQuad> m_quads;
 
     std::unique_ptr<IconMesh> m_iconMesh;
 
     float m_zoom = 0;
+    float m_styleZoom = 0;
+    float m_tileScale = 1;
     std::unique_ptr<SpriteLabels> m_spriteLabels;
     std::unique_ptr<StyleBuilder> m_textStyleBuilder;
 

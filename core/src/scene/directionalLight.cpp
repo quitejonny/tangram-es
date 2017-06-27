@@ -1,10 +1,10 @@
-#include "directionalLight.h"
+#include "scene/directionalLight.h"
 
-#include "glm/gtx/string_cast.hpp"
-#include "platform.h"
 #include "gl/shaderProgram.h"
+#include "directionalLight_glsl.h"
+#include "platform.h"
+#include "util/floatFormatter.h"
 #include "view/view.h"
-#include "shaders/directionalLight_glsl.h"
 
 namespace Tangram {
 
@@ -23,25 +23,25 @@ void DirectionalLight::setDirection(const glm::vec3 &_dir) {
     m_direction = glm::normalize(_dir);
 }
 
-std::unique_ptr<LightUniforms> DirectionalLight::injectOnProgram(ShaderProgram& _shader) {
-    injectSourceBlocks(_shader);
+std::unique_ptr<LightUniforms> DirectionalLight::getUniforms() {
 
     if (!m_dynamic) { return nullptr; }
 
-    return std::make_unique<Uniforms>(_shader, getUniformName());
+    return std::make_unique<Uniforms>(getUniformName());
 }
 
-void DirectionalLight::setupProgram(RenderState& rs, const View& _view, LightUniforms& _uniforms) {
+void DirectionalLight::setupProgram(RenderState& rs, const View& _view, ShaderProgram& _shader,
+                                    LightUniforms& _uniforms) {
 
     glm::vec3 direction = m_direction;
     if (m_origin == LightOrigin::world) {
         direction = _view.getNormalMatrix() * direction;
     }
 
-    Light::setupProgram(rs, _view, _uniforms);
+    Light::setupProgram(rs, _view, _shader, _uniforms);
 
     auto& u = static_cast<DirectionalLight::Uniforms&>(_uniforms);
-    u.shader.setUniformf(rs, u.direction, direction);
+    _shader.setUniformf(rs, u.direction, direction);
 }
 
 std::string DirectionalLight::getClassBlock() {
@@ -56,7 +56,7 @@ std::string DirectionalLight::getInstanceDefinesBlock() {
 std::string DirectionalLight::getInstanceAssignBlock() {
     std::string block = Light::getInstanceAssignBlock();
     if (!m_dynamic) {
-        block += ", " + glm::to_string(m_direction) + ")";
+        block += ", " + ff::to_string(m_direction) + ")";
     }
     return block;
 }

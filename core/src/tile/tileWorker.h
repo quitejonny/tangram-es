@@ -3,16 +3,17 @@
 #include "tile/tileTask.h"
 #include "util/jobQueue.h"
 
-#include <memory>
-#include <vector>
-#include <condition_variable>
-#include <thread>
-#include <mutex>
 #include <atomic>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <thread>
+#include <vector>
 
 namespace Tangram {
 
 class JobQueue;
+class Platform;
 class Scene;
 class TileBuilder;
 
@@ -20,11 +21,11 @@ class TileWorker : public TileTaskQueue {
 
 public:
 
-    TileWorker(int _num_worker);
+    TileWorker(std::shared_ptr<Platform> _platform, int _numWorker);
 
     ~TileWorker();
 
-    virtual void enqueue(std::shared_ptr<TileTask>&& task) override;
+    virtual void enqueue(std::shared_ptr<TileTask> task) override;
 
     void stop();
 
@@ -49,6 +50,8 @@ private:
 
     std::mutex m_mutex;
     std::vector<std::shared_ptr<TileTask>> m_queue;
+
+    std::shared_ptr<Platform> m_platform;
 };
 
 }

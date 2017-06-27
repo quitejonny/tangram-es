@@ -1,6 +1,6 @@
-#include "framebuffer.h"
+#include "gl/framebuffer.h"
 
-#include "gl/error.h"
+#include "gl/glError.h"
 #include "gl/primitives.h"
 #include "gl/renderState.h"
 #include "gl/hardware.h"
@@ -12,7 +12,6 @@ namespace Tangram {
 
 FrameBuffer::FrameBuffer(int _width, int _height, bool _colorRenderBuffer) :
     m_glFrameBufferHandle(0),
-    m_generation(-1),
     m_valid(false),
     m_colorRenderBuffer(_colorRenderBuffer),
     m_width(_width), m_height(_height) {
@@ -39,10 +38,12 @@ void FrameBuffer::apply(RenderState& _rs, GLuint _handle, glm::vec2 _viewport, g
     _rs.framebuffer(_handle);
     _rs.viewport(0, 0, _viewport.x, _viewport.y);
 
-    _rs.clearColor(_clearColor.r / 255.f,
-                   _clearColor.g / 255.f,
-                   _clearColor.b / 255.f,
-                   _clearColor.a / 255.f);
+    if (_clearColor == glm::vec4(0.0) && _rs.defaultOpaqueClearColor()) {
+        _rs.clearDefaultOpaqueColor();
+    } else {
+        _clearColor /= 255.f;
+        _rs.clearColor(_clearColor.r, _clearColor.g, _clearColor.b, _clearColor.a);
+    }
 
     // Enable depth testing
     _rs.depthMask(GL_TRUE);
@@ -70,6 +71,21 @@ GLuint FrameBuffer::readAt(float _normalizedX, float _normalizedY) const {
                    1, 1, GL_RGBA, GL_UNSIGNED_BYTE, &pixel);
 
     return pixel;
+}
+
+FrameBuffer::PixelRect FrameBuffer::readRect(float _normalizedX, float _normalizedY, float _normalizedW, float _normalizedH) const {
+
+    PixelRect rect;
+    rect.left = fminf(fmaxf(floorf(_normalizedX * m_width), 0.f), m_width);
+    rect.bottom = fminf(fmaxf(floorf(_normalizedY * m_height), 0.f), m_height);
+    rect.width = fminf(fmaxf(ceilf(_normalizedW * m_width), 0.f), m_width - rect.left);
+    rect.height = fminf(fmaxf(ceilf(_normalizedH * m_height), 0.f), m_height - rect.bottom);
+
+    rect.pixels.resize(rect.width * rect.height);
+
+    GL::readPixels(rect.left, rect.bottom, rect.width, rect.height, GL_RGBA, GL_UNSIGNED_BYTE, rect.pixels.data());
+
+    return rect;
 }
 
 void FrameBuffer::init(RenderState& _rs) {
@@ -145,22 +161,17 @@ void FrameBuffer::init(RenderState& _rs) {
         m_valid = true;
     }
 
-    m_generation = _rs.generation();
-
     m_disposer = Disposer(_rs);
 }
 
 FrameBuffer::~FrameBuffer() {
 
-    int generation = m_generation;
     GLuint glHandle = m_glFrameBufferHandle;
 
     m_disposer([=](RenderState& rs) {
-        if (rs.isValidGeneration(generation)) {
-            rs.framebufferUnset(glHandle);
+        rs.framebufferUnset(glHandle);
 
-            GL::deleteFramebuffers(1, &glHandle);
-        }
+        GL::deleteFramebuffers(1, &glHandle);
     });
 }
 

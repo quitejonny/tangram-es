@@ -1,12 +1,13 @@
-#include "styleContext.h"
+#include "scene/styleContext.h"
 
-#include "platform.h"
 #include "data/propertyItem.h"
 #include "data/tileData.h"
+#include "log.h"
+#include "platform.h"
 #include "scene/filters.h"
 #include "scene/scene.h"
+#include "util/mapProjection.h"
 #include "util/builders.h"
-#include "log.h"
 
 #include "duktape.h"
 
@@ -143,6 +144,7 @@ void StyleContext::parseSceneGlobals(const YAML::Node& node) {
             break;
         }
     default:
+        duk_push_null(m_ctx);
         break;
     }
 }
@@ -277,6 +279,13 @@ void StyleContext::setKeyword(const std::string& _key, Value _val) {
     entry = std::move(_val);
 }
 
+float StyleContext::getPixelAreaScale() {
+    // scale the filter value with pixelsPerMeter
+    // used with `px2` area filtering
+    double metersPerPixel = 2.f * MapProjection::HALF_CIRCUMFERENCE * exp2(-m_keywordZoom) / View::s_pixelsPerTile;
+    return metersPerPixel * metersPerPixel;
+}
+
 const Value& StyleContext::getKeyword(const std::string& _key) const {
     return getKeyword(Filter::keywordType(_key));
 }
@@ -345,7 +354,17 @@ void StyleContext::parseStyleResult(StyleParamKey _key, StyleParam::Value& _val)
 
     if (duk_is_string(m_ctx, -1)) {
         std::string value(duk_get_string(m_ctx, -1));
-        _val = StyleParam::parseString(_key, value);
+
+        switch (_key) {
+            case StyleParamKey::text_source:
+            case StyleParamKey::text_source_left:
+            case StyleParamKey::text_source_right:
+                _val = value;
+                break;
+            default:
+                _val = StyleParam::parseString(_key, value);
+                break;
+        }
 
     } else if (duk_is_boolean(m_ctx, -1)) {
         bool value = duk_get_boolean(m_ctx, -1);
@@ -432,6 +451,11 @@ void StyleContext::parseStyleResult(StyleParamKey _key, StyleParam::Value& _val)
             case StyleParamKey::extrude:
                 _val = glm::vec2(0.f, static_cast<float>(duk_get_number(m_ctx, -1)));
                 break;
+            case StyleParamKey::placement_spacing: {
+                double v = duk_get_number(m_ctx, -1);
+                _val = StyleParam::Width{static_cast<float>(v), Unit::pixel};
+                break;
+            }
             case StyleParamKey::width:
             case StyleParamKey::outline_width: {
                 // TODO more efficient way to return pixels.
@@ -440,7 +464,8 @@ void StyleContext::parseStyleResult(StyleParamKey _key, StyleParam::Value& _val)
                 _val = StyleParam::Width{static_cast<float>(v)};
                 break;
             }
-            case StyleParamKey::text_font_stroke_width: {
+            case StyleParamKey::text_font_stroke_width:
+            case StyleParamKey::placement_min_length_ratio: {
                 _val = static_cast<float>(duk_get_number(m_ctx, -1));
                 break;
             }
@@ -458,8 +483,7 @@ void StyleContext::parseStyleResult(StyleParamKey _key, StyleParam::Value& _val)
                 break;
         }
     } else if (duk_is_null_or_undefined(m_ctx, -1)) {
-        // Ignore setting value
-        LOGD("duk evaluates JS method to null or undefined.");
+        // Explicitly set value as 'undefined'. This is important for some styling rules.
         _val = Undefined();
     } else {
         LOGW("Unhandled return type from Javascript style function for %d.", _key);

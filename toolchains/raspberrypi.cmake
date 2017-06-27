@@ -10,35 +10,35 @@ check_unsupported_compiler_version()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
 
-# add sources and include headers
-find_sources_and_include_directories(
-  ${PROJECT_SOURCE_DIR}/rpi/src/*.h
-  ${PROJECT_SOURCE_DIR}/rpi/src/*.cpp)
+get_mapzen_api_key(MAPZEN_API_KEY)
+add_definitions(-DMAPZEN_API_KEY="${MAPZEN_API_KEY}")
 
 # add sources and include headers
 find_sources_and_include_directories(
-  ${PROJECT_SOURCE_DIR}/linux/src/urlWorker.*
-  ${PROJECT_SOURCE_DIR}/linux/src/urlWorker.*)
+  ${PROJECT_SOURCE_DIR}/platforms/rpi/src/*.h
+  ${PROJECT_SOURCE_DIR}/platforms/rpi/src/*.cpp)
 
-# add sources and include headers
-find_sources_and_include_directories(
-  ${PROJECT_SOURCE_DIR}/core/common/platform_gl.h
-  ${PROJECT_SOURCE_DIR}/core/common/platform_gl.cpp)
+set(COMMON_SOURCES
+    ${PROJECT_SOURCE_DIR}/platforms/common/urlClient.cpp
+    ${PROJECT_SOURCE_DIR}/platforms/common/platform_gl.cpp)
+include_directories(${PROJECT_SOURCE_DIR}/platforms/common)
+
+# add linux dependencies
+set(LINUX_SOURCES
+    ${PROJECT_SOURCE_DIR}/platforms/linux/src/platform_linux.cpp)
+include_directories(${PROJECT_SOURCE_DIR}/platforms/linux/src)
 
 # include headers for rpi-installed libraries
 include_directories(/opt/vc/include/)
 include_directories(/opt/vc/include/interface/vcos/pthreads)
 include_directories(/opt/vc/include/interface/vmcs_host/linux)
 
-# load library dependencies
-add_subdirectory(${PROJECT_SOURCE_DIR}/external)
-
 # load core library
 add_subdirectory(${PROJECT_SOURCE_DIR}/core)
 
-add_executable(${EXECUTABLE_NAME} ${SOURCES})
+add_executable(${EXECUTABLE_NAME} ${SOURCES} ${COMMON_SOURCES} ${LINUX_SOURCES})
 
 target_link_libraries(${EXECUTABLE_NAME}
-    ${CORE_LIBRARY} -lcurl)
+  ${CORE_LIBRARY} -lcurl)
 
 add_resources(${EXECUTABLE_NAME} "${PROJECT_SOURCE_DIR}/scenes")

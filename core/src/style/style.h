@@ -1,9 +1,10 @@
 #pragma once
 
+#include "data/tileData.h"
 #include "gl.h"
 #include "gl/uniform.h"
+#include "scene/drawRule.h"
 #include "util/fastmap.h"
-#include "data/tileData.h"
 
 #include <memory>
 #include <string>
@@ -11,39 +12,40 @@
 
 namespace Tangram {
 
-struct DrawRule;
 class Label;
 class LabelCollider;
 class Light;
-struct LightUniforms;
-class Tile;
 class MapProjection;
-class Material;
-struct MaterialUniforms;
 class Marker;
-class VertexLayout;
-class View;
+class Material;
+class RenderState;
 class Scene;
 class ShaderProgram;
+class ShaderSource;
 class Style;
-class DataSource;
-class RenderState;
+class Tile;
+class TileSource;
+class VertexLayout;
+class View;
+struct DrawRule;
+struct LightUniforms;
+struct MaterialUniforms;
 
-enum class LightingType : char {
+enum class LightingType : uint8_t {
     none,
     vertex,
     fragment
 };
 
-enum class Blending : int8_t {
-    opaque = 0,
+enum class Blending : uint8_t {
+    opaque,
     add,
     multiply,
     inlay,
     overlay,
 };
 
-enum class RasterType {
+enum class RasterType : uint8_t {
     none,
     color,
     normal,
@@ -59,8 +61,6 @@ struct StyledMesh {
 
 class StyleBuilder {
 public:
-
-    StyleBuilder(const Style& _style);
 
     virtual ~StyleBuilder() = default;
 
@@ -89,10 +89,6 @@ public:
     virtual void addSelectionItems(LabelCollider& _layout) {}
 
     virtual const Style& style() const = 0;
-
-protected:
-    bool m_hasColorShaderBlock = false;
-
 };
 
 /* Means of constructing and rendering map geometry
@@ -118,13 +114,18 @@ protected:
     std::string m_name;
     uint32_t m_id = 0;
 
-    /* <ShaderProgram> used to draw meshes using this style */
-    std::unique_ptr<ShaderProgram> m_shaderProgram;
+    std::unique_ptr<ShaderSource> m_shaderSource;
 
-    std::unique_ptr<ShaderProgram> m_selectionProgram;
+    /* <ShaderProgram> used to draw meshes using this style */
+    std::shared_ptr<ShaderProgram> m_shaderProgram;
+
+    std::shared_ptr<ShaderProgram> m_selectionProgram;
 
     /* <VertexLayout> shared between meshes using this style */
     std::shared_ptr<VertexLayout> m_vertexLayout;
+
+    /* Stores default style draw rules*/
+    std::unique_ptr<DrawRuleData> m_defaultDrawRule = nullptr;
 
     /* <LightingType> to determine how lighting will be calculated for this style */
     LightingType m_lightingType = LightingType::fragment;
@@ -140,6 +141,8 @@ protected:
 
     /* Whether the style should generate texture coordinates */
     bool m_texCoordsGeneration = false;
+
+    bool m_hasColorShaderBlock = false;
 
     RasterType m_rasterType = RasterType::none;
 
@@ -173,25 +176,23 @@ private:
      */
     void setupSceneShaderUniforms(RenderState& rs, Scene& _scene, UniformBlock& _uniformBlock);
 
-    void setupShaderUniforms(RenderState& rs, ShaderProgram& _program, const View& _view, Scene& _scene,
-            UniformBlock& _uniformBlock);
+    void setupShaderUniforms(RenderState& rs, ShaderProgram& _program, const View& _view,
+                             Scene& _scene, UniformBlock& _uniformBlock);
 
     struct LightHandle {
         LightHandle(Light* _light, std::unique_ptr<LightUniforms> _uniforms);
-
         Light *light;
         std::unique_ptr<LightUniforms> uniforms;
     };
-    std::vector<LightHandle> m_lights;
 
 
     struct MaterialHandle {
         /* <Material> used for drawing meshes that use this style */
         std::shared_ptr<Material> material;
-
         std::unique_ptr<MaterialUniforms> uniforms;
     };
 
+    std::vector<LightHandle> m_lights;
     MaterialHandle m_material;
 
 public:
@@ -246,8 +247,6 @@ public:
      */
     virtual void constructShaderProgram() = 0;
 
-    void constructSelectionShaderProgram();
-
     /* Perform any setup needed before drawing each frame
      * _textUnit is the next available texture unit
      */
@@ -271,8 +270,6 @@ public:
 
     void setAnimated(bool _animated) { m_animated = _animated; }
 
-    void setMaterial(const std::shared_ptr<Material>& _material);
-
     virtual void setPixelScale(float _pixelScale) { m_pixelScale = _pixelScale; }
 
     void setRasterType(RasterType _rasterType) { m_rasterType = _rasterType; }
@@ -283,9 +280,9 @@ public:
 
     void setID(uint32_t _id) { m_id = _id; }
 
-    std::shared_ptr<Material> getMaterial() { return m_material.material; }
+    Material& getMaterial() { return *m_material.material; }
 
-    const std::unique_ptr<ShaderProgram>& getShaderProgram() const { return m_shaderProgram; }
+    ShaderSource& getShaderSource() const { return *m_shaderSource; }
 
     const std::string& getName() const { return m_name; }
     const uint32_t& getID() const { return m_id; }
@@ -294,15 +291,20 @@ public:
 
     virtual bool hasRasters() const { return m_rasterType != RasterType::none; }
 
-    void setupRasters(const std::vector<std::shared_ptr<DataSource>>& _dataSources);
+    void setupRasters(const std::vector<std::shared_ptr<TileSource>>& _sources);
 
     std::vector<StyleUniform>& styleUniforms() { return m_mainUniforms.styleUniforms; }
+
+    void setDefaultDrawRule(std::unique_ptr<DrawRuleData>&& _rule);
+    void applyDefaultDrawRules(DrawRule& _rule) const;
 
     virtual std::unique_ptr<StyleBuilder> createBuilder() const = 0;
 
     GLenum drawMode() const { return m_drawMode; }
     float pixelScale() const { return m_pixelScale; }
     const auto& vertexLayout() const { return m_vertexLayout; }
+
+    bool hasColorShaderBlock() const { return m_hasColorShaderBlock; }
 
 };
 

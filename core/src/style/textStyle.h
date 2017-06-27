@@ -1,10 +1,10 @@
 #pragma once
 
-#include "style.h"
-#include "labels/textLabel.h"
-#include "labels/labelProperty.h"
-#include "util/hash.h"
 #include "gl/dynamicQuadMesh.h"
+#include "style/style.h"
+#include "labels/labelProperty.h"
+#include "labels/textLabel.h"
+#include "util/hash.h"
 
 #include <memory>
 #include <vector>
@@ -24,11 +24,13 @@ public:
     struct Parameters {
         std::shared_ptr<alfons::Font> font;
         std::string text = "";
+        std::string textLeft = "";
+        std::string textRight = "";
         bool interactive = false;
         uint32_t fill = 0xff000000;
         uint32_t strokeColor = 0xffffffff;
         float strokeWidth = 0.0f;
-        float fontSize = 16.0f;
+        float fontSize = 12.0f;
         Label::Options labelOptions;
         bool wordWrap = true;
         uint32_t maxLineWidth = 15;
@@ -38,6 +40,8 @@ public:
 
         float fontScale = 1;
         float lineSpacing = 0;
+
+        bool hasComplexShaping = false;
     };
 
     auto& context() const { return m_context; }

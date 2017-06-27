@@ -1,6 +1,6 @@
 #include "catch.hpp"
 #include "tangram.h"
-#include "platform.h"
+#include "platform_mock.h"
 #include "style/textStyleBuilder.h"
 
 #include <memory>
@@ -33,12 +33,11 @@ alfons::FontManager fontManager;
 std::shared_ptr<alfons::Font> font;
 
 void initFont(std::string _font = TEST_FONT) {
+    std::shared_ptr<Platform> platform = std::make_shared<MockPlatform>();
     font = fontManager.addFont("default", TEST_FONT_SIZE, alfons::InputSource(_font));
 
-    size_t dataSize = 0;
-    char* data = reinterpret_cast<char*>(bytesFromFile(_font.c_str(), dataSize));
-    auto face = fontManager.addFontFace(alfons::InputSource(data, dataSize), TEST_FONT_SIZE);
-    free(data);
+    auto data = platform->bytesFromFile(_font.c_str());
+    auto face = fontManager.addFontFace(alfons::InputSource(std::move(data)), TEST_FONT_SIZE);
     font->addFace(face);
 }
 

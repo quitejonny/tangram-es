@@ -1,13 +1,14 @@
 #pragma once
 
-#include "style.h"
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
+#include "gl/dynamicQuadMesh.h"
 #include "labels/spriteLabel.h"
 #include "labels/labelProperty.h"
-#include "gl/dynamicQuadMesh.h"
-#include "style/textStyle.h"
 #include "labels/textLabels.h"
+#include "style/style.h"
+#include "style/textStyle.h"
+
+#include "glm/vec3.hpp"
+#include "glm/vec2.hpp"
 
 namespace Tangram {
 
@@ -19,14 +20,18 @@ class PointStyle : public Style {
 public:
 
     struct Parameters {
-        bool centroid = false;
         bool interactive = false;
+        bool keepTileEdges = false;
+        bool autoAngle = false;
         std::string sprite;
         std::string spriteDefault;
         glm::vec2 size;
         uint32_t color = 0xffffffff;
         Label::Options labelOptions;
+        LabelProperty::Placement placement = LabelProperty::Placement::vertex;
         float extrudeScale = 1.f;
+        float placementMinLengthRatio = 1.0f;
+        float placementSpacing = 80.f;
     };
 
     PointStyle(std::string _name, std::shared_ptr<FontContext> _fontContext,
@@ -51,6 +56,8 @@ public:
     virtual size_t dynamicMeshSize() const override { return m_mesh->bufferSize(); }
 
     virtual std::unique_ptr<StyleBuilder> createBuilder() const override;
+
+    virtual void build(const Scene& _scene) override;
 
     virtual void constructVertexLayout() override;
     virtual void constructShaderProgram() override;
@@ -81,11 +88,11 @@ namespace std {
         size_t operator() (const Tangram::PointStyle::Parameters& p) const {
             std::hash<Tangram::Label::Options> optionsHash;
             std::size_t seed = 0;
-            hash_combine(seed, p.centroid);
             hash_combine(seed, p.sprite);
             hash_combine(seed, p.color);
             hash_combine(seed, p.size.x);
             hash_combine(seed, p.size.y);
+            hash_combine(seed, (int)p.placement);
             hash_combine(seed, optionsHash(p.labelOptions));
             return seed;
         }

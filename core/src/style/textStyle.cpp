@@ -1,25 +1,25 @@
-#include "textStyle.h"
-#include "textStyleBuilder.h"
+#include "style/textStyle.h"
+#include "style/textStyleBuilder.h"
 
-#include "gl/shaderProgram.h"
+#include "gl/dynamicQuadMesh.h"
 #include "gl/mesh.h"
 #include "gl/renderState.h"
-#include "gl/dynamicQuadMesh.h"
+#include "gl/shaderProgram.h"
 #include "labels/textLabels.h"
+#include "log.h"
 #include "text/fontContext.h"
 #include "view/view.h"
-#include "log.h"
 
-#include "shaders/text_fs.h"
-#include "shaders/sdf_fs.h"
-#include "shaders/point_vs.h"
+#include "text_fs.h"
+#include "sdf_fs.h"
+#include "point_vs.h"
 
 namespace Tangram {
 
 TextStyle::TextStyle(std::string _name, std::shared_ptr<FontContext> _fontContext,
                      bool _sdf, Blending _blendMode, GLenum _drawMode, bool _selection)
     : Style(_name, _blendMode, _drawMode, _selection), m_sdf(_sdf),
-      m_context(_fontContext ? _fontContext : std::make_shared<FontContext>()) {}
+      m_context(_fontContext) {}
 
 TextStyle::~TextStyle() {}
 
@@ -38,16 +38,14 @@ void TextStyle::constructVertexLayout() {
 void TextStyle::constructShaderProgram() {
 
     if (m_sdf) {
-        m_shaderProgram->setSourceStrings(SHADER_SOURCE(sdf_fs),
-                                          SHADER_SOURCE(point_vs));
+        m_shaderSource->setSourceStrings(SHADER_SOURCE(sdf_fs),
+                                         SHADER_SOURCE(point_vs));
     } else {
-        m_shaderProgram->setSourceStrings(SHADER_SOURCE(text_fs),
-                                          SHADER_SOURCE(point_vs));
+        m_shaderSource->setSourceStrings(SHADER_SOURCE(text_fs),
+                                         SHADER_SOURCE(point_vs));
     }
 
-    std::string defines = "#define TANGRAM_TEXT\n";
-
-    m_shaderProgram->addSourceBlock("defines", defines);
+    m_shaderSource->addSourceBlock("defines", "#define TANGRAM_TEXT\n");
 }
 
 void TextStyle::onBeginUpdate() {
@@ -67,7 +65,9 @@ void TextStyle::onBeginFrame(RenderState& rs) {
     // Upload meshes and textures
     m_context->updateTextures(rs);
 
-    for (auto& mesh : m_meshes) { mesh->upload(rs); }
+    for (auto& mesh : m_meshes) {
+        mesh->upload(rs);
+    }
 }
 
 void TextStyle::onBeginDrawFrame(RenderState& rs, const View& _view, Scene& _scene) {
@@ -128,7 +128,7 @@ std::unique_ptr<StyleBuilder> TextStyle::createBuilder() const {
 
 DynamicQuadMesh<TextVertex>& TextStyle::getMesh(size_t id) const {
     if (id >= m_meshes.size()) {
-        LOGE("Accesing inconsistent quad mesh");
+        LOGE("Accessing inconsistent quad mesh");
         assert(false);
         return *m_meshes[0];
     }

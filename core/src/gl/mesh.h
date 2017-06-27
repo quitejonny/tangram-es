@@ -2,11 +2,11 @@
 
 #include "gl.h"
 #include "gl/disposer.h"
-#include "vertexLayout.h"
-#include "vao.h"
+#include "gl/vertexLayout.h"
+#include "gl/vao.h"
+#include "style/style.h"
 #include "util/types.h"
 #include "platform.h"
-#include "style/style.h"
 
 #include <string>
 #include <vector>
@@ -76,8 +76,6 @@ public:
 
 protected:
 
-    int m_generation; // Generation in which this mesh's GL handles were created
-
     // Used in draw for legth and offsets: sumIndices, sumVertices
     // needs to be set by compile()
     std::vector<std::pair<uint32_t, uint32_t>> m_vertexOffsets;
@@ -108,8 +106,6 @@ protected:
     GLintptr m_dirtyOffset;
 
     Disposer m_disposer;
-
-    bool checkValidity(RenderState& rs);
 
     size_t compileIndices(const std::vector<std::pair<uint32_t, uint32_t>>& _offsets,
                           const std::vector<uint16_t>& _indices, size_t _offset);

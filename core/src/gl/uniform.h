@@ -37,8 +37,7 @@ public:
 private:
     const std::string name;
 
-    mutable int location = -1;
-    mutable int generation = -1;
+    mutable int location = -2;
 
     friend class ShaderProgram;
 };

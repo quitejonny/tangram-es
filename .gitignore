@@ -124,14 +124,17 @@ cmake_install.cmake
 install_manifest.txt
 
 # Android debugging
-android/demo/jni
-android/*/libs
-android/*/obj
+platforms/android/demo/jni
+platforms/android/*/libs
+platforms/android/*/obj
 *.mk
 
 # Android gradle
-android/demo/gradle
-android/demo/gradlew*
+platforms/android/demo/gradle
+platforms/android/demo/gradlew*
+
+# iOS generated plist configuration
+platforms/ios/demo/resources/Config.plist
 
 # vim
 *.swp
@@ -140,11 +143,8 @@ android/demo/gradlew*
 # perf files
 perf.data
 
-# shader generated headers
-core/include/shaders/*.h
-
-# texture data header
-core/include/defaultPointTextureData.h
+# generated headers
+core/generated/*.h
 
 # CLion build directories
 /cmake-build-debug/

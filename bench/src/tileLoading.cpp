@@ -1,11 +1,12 @@
 #include "tangram.h"
 #include "gl.h"
-#include "platform.h"
+#include "platform_mock.h"
 #include "log.h"
-#include "data/dataSource.h"
+#include "data/tileSource.h"
 #include "scene/sceneLoader.h"
 #include "scene/scene.h"
 #include "style/style.h"
+#include "scene/importer.h"
 #include "scene/styleContext.h"
 #include "util/mapProjection.h"
 #include "tile/tile.h"
@@ -27,10 +28,12 @@ struct TestContext {
     MercatorProjection s_projection;
     const char* sceneFile = "scene.yaml";
 
+    std::shared_ptr<Platform> platform = std::make_shared<MockPlatform>();
+
     std::shared_ptr<Scene> scene;
     StyleContext styleContext;
 
-    std::shared_ptr<DataSource> source;
+    std::shared_ptr<TileSource> source;
 
     std::vector<char> rawTileData;
 
@@ -39,22 +42,25 @@ struct TestContext {
     std::unique_ptr<TileBuilder> tileBuilder;
 
     void loadScene(const char* sceneFile) {
-        scene = std::make_shared<Scene>(sceneFile);
-        auto sceneString = stringFromFile(sceneFile);
 
-        try { scene->config() = YAML::Load(sceneString); }
+        Importer sceneImporter;
+        scene = std::make_shared<Scene>(platform, sceneFile);
+
+        try {
+            scene->config() = sceneImporter.applySceneImports(platform, scene);
+        }
         catch (YAML::ParserException e) {
             LOGE("Parsing scene config '%s'", e.what());
             return;
         }
-        SceneLoader::applyConfig(scene);
+        SceneLoader::applyConfig(platform, scene);
 
         scene->fontContext()->loadFonts();
 
         styleContext.initFunctions(*scene);
         styleContext.setKeywordZoom(0);
 
-        source = *scene->dataSources().begin();
+        source = *scene->tileSources().begin();
         tileBuilder = std::make_unique<TileBuilder>(scene);
     }
 
@@ -76,9 +82,9 @@ struct TestContext {
 
     void parseTile() {
         Tile tile({0,0,10,10,0}, s_projection);
-        source = *scene->dataSources().begin();
+        source = *scene->tileSources().begin();
         auto task = source->createTask(tile.getID());
-        auto& t = dynamic_cast<DownloadTileTask&>(*task);
+        auto& t = dynamic_cast<BinaryTileTask&>(*task);
         t.rawTileData = std::make_shared<std::vector<char>>(rawTileData);
 
         tileData = source->parse(*task, s_projection);
@@ -107,13 +113,14 @@ public:
 };
 
 BENCHMARK_DEFINE_F(TileLoadingFixture, BuildTest)(benchmark::State& st) {
-
+#if 0
     while (st.KeepRunning()) {
         ctx.parseTile();
         result = ctx.tileBuilder->build({0,0,10,10,0}, *ctx.tileData, *ctx.source);
 
         LOG("ok %d / bytes - %d", bool(result), result->getMemoryUsage());
     }
+#endif
 }
 
 BENCHMARK_REGISTER_F(TileLoadingFixture, BuildTest);

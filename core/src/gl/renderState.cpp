@@ -1,11 +1,11 @@
-#include "renderState.h"
+#include "gl/renderState.h"
 
-#include "platform.h"
-#include "vertexLayout.h"
-#include "gl/error.h"
+#include "gl/vertexLayout.h"
+#include "gl/glError.h"
 #include "gl/hardware.h"
 #include "gl/texture.h"
 #include "log.h"
+#include "platform.h"
 
 // Default point texture data is included as an array literal.
 #include "defaultPointTextureData.h"
@@ -32,6 +32,7 @@ RenderState::RenderState() {
     m_indexBuffer = { 0, false };
     m_program = { 0, false };
     m_clearColor = { 0., 0., 0., 0., false };
+    m_defaultOpaqueClearColor = { 0., 0., 0., false };
     m_texture = { 0, 0, false };
     m_textureUnit = { 0, false };
     m_framebuffer = { 0, false };
@@ -48,6 +49,15 @@ RenderState::~RenderState() {
     deleteQuadIndexBuffer();
     deleteDefaultPointTexture();
 
+    for (auto& s : vertexShaders) {
+        GL::deleteShader(s.second);
+    }
+    vertexShaders.clear();
+
+    for (auto& s : fragmentShaders) {
+        GL::deleteShader(s.second);
+    }
+    fragmentShaders.clear();
 }
 
 void RenderState::invalidate() {
@@ -77,23 +87,13 @@ void RenderState::invalidate() {
     GL::clearDepth(1.0);
     GL::depthRange(0.0, 1.0);
 
+    // No need to delete shaders after context loss
+    vertexShaders.clear();
+    fragmentShaders.clear();
 }
 
 void RenderState::cacheDefaultFramebuffer() {
     GL::getIntegerv(GL_FRAMEBUFFER_BINDING, &m_defaultFramebuffer);
-}
-
-void RenderState::increaseGeneration() {
-    generateQuadIndexBuffer();
-    m_validGeneration++;
-}
-
-bool RenderState::isValidGeneration(int _generation) {
-    return _generation == m_validGeneration;
-}
-
-int RenderState::generation() {
-    return m_validGeneration;
 }
 
 int RenderState::nextAvailableTextureUnit() {
@@ -141,6 +141,20 @@ bool RenderState::blendingFunc(GLenum sfactor, GLenum dfactor) {
         return false;
     }
     return true;
+}
+
+void RenderState::clearDefaultOpaqueColor() {
+    if (m_defaultOpaqueClearColor.set) {
+        clearColor(m_defaultOpaqueClearColor.r, m_defaultOpaqueClearColor.g, m_defaultOpaqueClearColor.b, 1.0);
+    }
+}
+
+bool RenderState::defaultOpaqueClearColor() {
+    return m_defaultOpaqueClearColor.set;
+}
+
+void RenderState::defaultOpaqueClearColor(GLclampf r, GLclampf g, GLclampf b) {
+    m_defaultOpaqueClearColor = { r, g, b, true };
 }
 
 bool RenderState::clearColor(GLclampf r, GLclampf g, GLclampf b, GLclampf a) {
@@ -367,7 +381,9 @@ void RenderState::deleteDefaultPointTexture() {
 
 void RenderState::generateDefaultPointTexture() {
     TextureOptions options = { GL_RGBA, GL_RGBA, { GL_LINEAR, GL_LINEAR }, { GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE } };
-    m_defaultPointTexture = new Texture(default_point_texture_data, default_point_texture_size, options, true);
+    std::vector<char> defaultPoint;
+    defaultPoint.insert(defaultPoint.begin(), default_point_texture_data, default_point_texture_data + default_point_texture_size);
+    m_defaultPointTexture = new Texture(defaultPoint, options, true);
 }
 
 bool RenderState::framebuffer(GLuint handle) {

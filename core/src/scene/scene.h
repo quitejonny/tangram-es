@@ -1,6 +1,8 @@
 #pragma once
 
+#include "scene/asset.h"
 #include "util/color.h"
+#include "util/fastmap.h"
 #include "view/view.h"
 
 #include <atomic>
@@ -15,19 +17,25 @@
 #include "yaml-cpp/yaml.h"
 #include "util/yamlHelper.h"
 
+
 namespace Tangram {
 
-class Style;
-class Texture;
-class DataSource;
 class DataLayer;
+class FeatureSelection;
 class FontContext;
 class Light;
 class MapProjection;
+class Platform;
+class SceneLayer;
 class SpriteAtlas;
-class FeatureSelection;
+class Style;
+class Texture;
+class TileSource;
 struct Stops;
+class Url;
 
+// Delimiter used in sceneloader for style params and layer-sublayer naming
+const std::string DELIMITER = ":";
 
 /* Singleton container of <Style> information
  *
@@ -58,7 +66,7 @@ public:
         yes, no, none
     };
 
-    Scene(const std::string& _path = "");
+    Scene(std::shared_ptr<const Platform> _platform, const std::string& _path = "");
     Scene(const Scene& _other);
     ~Scene();
 
@@ -66,12 +74,14 @@ public:
 
     auto& resourceRoot() { return m_resourceRoot; }
     auto& config() { return m_config; }
-    auto& dataSources() { return m_dataSources; };
+    auto& tileSources() { return m_tileSources; };
     auto& layers() { return m_layers; };
     auto& styles() { return m_styles; };
     auto& lights() { return m_lights; };
+    auto& lightBlocks() { return m_lightShaderBlocks; };
     auto& textures() { return m_textures; };
     auto& functions() { return m_jsFunctions; };
+    auto& assets() { return m_assets; };
     auto& spriteAtlases() { return m_spriteAtlases; };
     auto& stops() { return m_stops; }
     auto& background() { return m_background; }
@@ -83,17 +93,23 @@ public:
     const auto& path() const { return m_path; }
     const auto& resourceRoot() const { return m_resourceRoot; }
     const auto& config() const { return m_config; }
-    const auto& dataSources() const { return m_dataSources; };
+    const auto& tileSources() const { return m_tileSources; };
     const auto& layers() const { return m_layers; };
     const auto& styles() const { return m_styles; };
     const auto& lights() const { return m_lights; };
+    const auto& lightBlocks() const { return m_lightShaderBlocks; };
     const auto& functions() const { return m_jsFunctions; };
     const auto& mapProjection() const { return m_mapProjection; };
     const auto& fontContext() const { return m_fontContext; }
     const auto& globalRefs() const { return m_globalRefs; }
     const auto& featureSelection() const { return m_featureSelection; }
+    const auto& assets() const { return m_assets; };
+
+    void createSceneAsset(const std::shared_ptr<Platform>& platform, const Url& resolvedUrl, const Url& relativeUrl,
+                          const Url& base);
 
     const Style* findStyle(const std::string& _name) const;
+
     const Light* findLight(const std::string& _name) const;
 
     void updateTime(float _dt) { m_time += _dt; }
@@ -113,12 +129,13 @@ public:
     void animated(bool animated) { m_animated = animated ? yes : no; }
     animate animated() const { return m_animated; }
 
-    std::shared_ptr<DataSource> getDataSource(const std::string& name);
+    std::shared_ptr<TileSource> getTileSource(int32_t id);
+    std::shared_ptr<TileSource> getTileSource(const std::string& name);
 
     std::shared_ptr<Texture> getTexture(const std::string& name) const;
 
     float pixelScale() { return m_pixelScale; }
-    void setPixelScale(float _scale) { m_pixelScale = _scale; }
+    void setPixelScale(float _scale);
 
     std::atomic_ushort pendingTextures{0};
     std::atomic_ushort pendingFonts{0};
@@ -136,11 +153,17 @@ private:
     std::unique_ptr<MapProjection> m_mapProjection;
 
     std::vector<DataLayer> m_layers;
-    std::vector<std::shared_ptr<DataSource>> m_dataSources;
+    std::vector<std::shared_ptr<TileSource>> m_tileSources;
     std::vector<std::unique_ptr<Style>> m_styles;
+
     std::vector<std::unique_ptr<Light>> m_lights;
+    std::map<std::string, std::string> m_lightShaderBlocks;
+
     std::unordered_map<std::string, std::shared_ptr<Texture>> m_textures;
     std::unordered_map<std::string, std::shared_ptr<SpriteAtlas>> m_spriteAtlases;
+
+    // path as key
+    fastmap<std::string, std::shared_ptr<Asset>> m_assets;
 
     // Records the YAML Nodes for which global values have been swapped; keys are
     // nodes that referenced globals, values are nodes of globals themselves.

@@ -1,11 +1,12 @@
-#include "textDisplay.h"
-#include <cstdarg>
+#include "debug/textDisplay.h"
+
 #include "platform.h"
-#include "gl/error.h"
+#include "gl/glError.h"
 #include "gl/vertexLayout.h"
 #include "gl/renderState.h"
 #include "glm/glm.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+#include <cstdarg>
 
 #define STB_EASY_FONT_IMPLEMENTATION
 #include "stb_easy_font.h"
@@ -52,7 +53,7 @@ void TextDisplay::init() {
     )END";
 
     m_shader = std::make_unique<ShaderProgram>();
-    m_shader->setSourceStrings(fragShaderSrcStr, vertShaderSrcStr);
+    m_shader->setShaderSource(vertShaderSrcStr, fragShaderSrcStr);
 
     m_initialized = true;
 }

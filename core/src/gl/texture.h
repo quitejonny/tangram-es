@@ -41,7 +41,7 @@ public:
             TextureOptions _options = DEFAULT_TEXTURE_OPTION,
             bool _generateMipmaps = false);
 
-    Texture(const unsigned char* data, size_t dataSize,
+    Texture(const std::vector<char>& _data,
             TextureOptions _options = DEFAULT_TEXTURE_OPTION,
             bool _generateMipmaps = false);
 
@@ -79,7 +79,7 @@ public:
                     uint16_t _width, uint16_t _height, uint16_t _stride);
 
     /* Checks whether the texture has valid data and has been successfully uploaded to GPU */
-    bool isValid(RenderState& rs) const;
+    bool isValid() const;
 
     typedef std::pair<GLuint, GLuint> TextureSlot;
 
@@ -87,7 +87,7 @@ public:
 
     static bool isRepeatWrapping(TextureWrapping _wrapping);
 
-    bool loadImageFromMemory(const unsigned char* blob, unsigned int size);
+    bool loadImageFromMemory(const std::vector<char>& _data);
 
     static void flipImageData(unsigned char *result, int w, int h, int depth);
     static void flipImageData(GLuint *result, int w, int h);
@@ -95,7 +95,6 @@ public:
 protected:
 
     void generate(RenderState& rs, GLuint _textureUnit);
-    void checkValidity(RenderState& rs);
 
     TextureOptions m_options;
     std::vector<GLuint> m_data;
@@ -113,8 +112,6 @@ protected:
     unsigned int m_height;
 
     GLenum m_target;
-
-    int m_generation;
 
     Disposer m_disposer;
 

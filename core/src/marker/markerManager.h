@@ -1,10 +1,10 @@
 #pragma once
 
-#include "scene/styleContext.h"
 #include "scene/drawRule.h"
 #include "util/ease.h"
 #include "util/fastmap.h"
 #include "util/types.h"
+
 #include <memory>
 #include <vector>
 
@@ -14,11 +14,14 @@ class MapProjection;
 class Marker;
 class Scene;
 class StyleBuilder;
+class StyleContext;
 
 class MarkerManager {
 
 public:
 
+    MarkerManager();
+    ~MarkerManager();
     // Set the Scene object whose styling information will be used to build markers.
     void setScene(std::shared_ptr<Scene> scene);
 
@@ -28,8 +31,11 @@ public:
     // Try to remove the marker with the given ID; returns true if the marker was found and removed.
     bool remove(MarkerID markerID);
 
-    // Set the styling string for a marker; returns true if the marker was found and updated.
-    bool setStyling(MarkerID markerID, const char* styling);
+    // Set the styling for a marker using a YAML string; returns true if the marker was found and updated.
+    bool setStylingFromString(MarkerID markerID, const char* styling);
+
+    // Set the styling for a marker using a scene path; returns true is the marker was found and update.
+    bool setStylingFromPath(MarkerID markerID, const char* path);
 
     bool setBitmap(MarkerID markerID, int width, int height, const unsigned int* bitmapData);
 
@@ -74,13 +80,13 @@ private:
     bool buildStyling(Marker& marker);
     bool buildGeometry(Marker& marker, int zoom);
 
-    StyleContext m_styleContext;
+    std::unique_ptr<StyleContext> m_styleContext;
     std::shared_ptr<Scene> m_scene;
     std::vector<std::unique_ptr<Marker>> m_markers;
     std::vector<std::string> m_jsFnList;
     fastmap<std::string, std::unique_ptr<StyleBuilder>> m_styleBuilders;
     MapProjection* m_mapProjection = nullptr;
-    size_t m_jsFnIndex = 0;
+
     uint32_t m_idCounter = 0;
     int m_zoom = 0;
 

@@ -1,10 +1,11 @@
-#include "importer.h"
+#include "scene/importer.h"
+
+#include "log.h"
 #include "platform.h"
 #include "scene/sceneLoader.h"
-#include "yaml-cpp/yaml.h"
-#include "log.h"
 
-#include <regex>
+#include "yaml-cpp/yaml.h"
+#include <cassert>
 
 using YAML::Node;
 using YAML::NodeType;
@@ -13,12 +14,20 @@ namespace Tangram {
 
 std::atomic_uint Importer::progressCounter(0);
 
-Node Importer::applySceneImports(const Url& scenePath, const Url& resourceRoot) {
+Node Importer::applySceneImports(const std::shared_ptr<Platform>& platform,
+        std::shared_ptr<Scene>& scene) {
+
+    const Url& scenePath = scene->path();
+    const Url& resourceRoot = scene->resourceRoot();
 
     Url path;
     Url rootScenePath = scenePath.resolved(resourceRoot);
 
+    // Asset fills the m_path of the yaml asset with the yaml file in the zip bundle
+    scene->createSceneAsset(platform, rootScenePath, Url(""), Url(""));
+
     m_sceneQueue.push_back(rootScenePath);
+
 
     while (true) {
         {
@@ -50,19 +59,31 @@ Node Importer::applySceneImports(const Url& scenePath, const Url& resourceRoot) 
             if (m_scenes.find(path) != m_scenes.end()) { continue; }
         }
 
-        if (path.hasHttpScheme()) {
+        bool isZipped = (Url::getPathExtension(path.path()) == "zip");
+        auto& asset = scene->assets()[path.string()];
+        // An asset at this path must have been created by now.
+        assert(asset);
+
+        if (path.hasHttpScheme() && !asset->zipHandle()) {
             progressCounter++;
-            startUrlRequest(path.string(), [&, path](std::vector<char>&& rawData) {
+            platform->startUrlRequest(path.string(), [&, isZipped, path](std::vector<char>&& rawData) {
                 if (!rawData.empty()) {
                     std::unique_lock<std::mutex> lock(sceneMutex);
-                    processScene(path, std::string(rawData.data(), rawData.size()));
+                    auto& asset = scene->assets()[path.string()];
+                    if (isZipped) {
+                        auto& zippedAsset = static_cast<ZippedAsset&>(*asset);
+                        zippedAsset.buildZipHandle(rawData);
+                        processScene(platform, scene, path, asset->readStringFromAsset(platform));
+                    } else {
+                        processScene(platform, scene, path, std::string(rawData.data(), rawData.size()));
+                    }
                 }
                 progressCounter--;
                 m_condition.notify_all();
             });
         } else {
             std::unique_lock<std::mutex> lock(sceneMutex);
-            processScene(path, getSceneString(path));
+            processScene(platform, scene, path, getSceneString(platform, path, asset));
         }
     }
 
@@ -70,12 +91,13 @@ Node Importer::applySceneImports(const Url& scenePath, const Url& resourceRoot) 
 
     LOGD("Processing scene import Stack:");
     std::vector<Url> sceneStack;
-    importScenesRecursive(root, rootScenePath, sceneStack);
+    importScenesRecursive(platform, scene, root, rootScenePath, sceneStack);
 
     return root;
 }
 
-void Importer::processScene(const Url& scenePath, const std::string &sceneString) {
+void Importer::processScene(const std::shared_ptr<Platform>& platform, std::shared_ptr<Scene>& scene,
+        const Url& scenePath, const std::string &sceneString) {
 
     LOGD("Process: '%s'", scenePath.string().c_str());
 
@@ -89,7 +111,7 @@ void Importer::processScene(const Url& scenePath, const std::string &sceneString
 
         m_scenes[scenePath] = sceneNode;
 
-        for (const auto& import : getResolvedImportUrls(sceneNode, scenePath)) {
+        for (const auto& import : getResolvedImportUrls(platform, scene, sceneNode, scenePath)) {
             m_sceneQueue.push_back(import);
             m_condition.notify_all();
         }
@@ -124,9 +146,10 @@ bool nodeIsTextureUrl(const Node& node, const Node& textures) {
     return true;
 }
 
-void Importer::resolveSceneUrls(Node& root, const Url& base) {
+void Importer::resolveSceneUrls(const std::shared_ptr<Platform>& platform, Scene& scene, Node& root, const Url& base) {
 
     // Resolve global texture URLs.
+    std::string relativeUrl = "";
 
     Node textures = root["textures"];
 
@@ -134,7 +157,9 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
         for (auto texture : textures) {
             if (Node textureUrlNode = texture.second["url"]) {
                 if (nodeIsPotentialUrl(textureUrlNode)) {
+                    relativeUrl = textureUrlNode.Scalar();
                     textureUrlNode = Url(textureUrlNode.Scalar()).resolved(base).string();
+                    scene.createSceneAsset(platform, textureUrlNode.Scalar(), relativeUrl, base);
                 }
             }
         }
@@ -152,7 +177,9 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
             //style->texture
             if (Node texture = style["texture"]) {
                 if (nodeIsTextureUrl(texture, textures)) {
+                    relativeUrl = texture.Scalar();
                     texture = Url(texture.Scalar()).resolved(base).string();
+                    scene.createSceneAsset(platform, texture.Scalar(), relativeUrl, base);
                 }
             }
 
@@ -164,7 +191,9 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
                         if (!propNode.IsMap()) { continue; }
                         if (Node matTexture = propNode["texture"]) {
                             if (nodeIsTextureUrl(matTexture, textures)) {
+                                relativeUrl = matTexture.Scalar();
                                 matTexture = Url(matTexture.Scalar()).resolved(base).string();
+                                scene.createSceneAsset(platform, matTexture.Scalar(), relativeUrl, base);
                             }
                         }
                     }
@@ -178,11 +207,15 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
                     for (auto uniformEntry : uniforms) {
                         Node uniformValue = uniformEntry.second;
                         if (nodeIsTextureUrl(uniformValue, textures)) {
+                            relativeUrl = uniformValue.Scalar();
                             uniformValue = Url(uniformValue.Scalar()).resolved(base).string();
+                            scene.createSceneAsset(platform, uniformValue.Scalar(), relativeUrl, base);
                         } else if (uniformValue.IsSequence()) {
                             for (Node u : uniformValue) {
                                 if (nodeIsTextureUrl(u, textures)) {
+                                    relativeUrl = u.Scalar();
                                     u = Url(u.Scalar()).resolved(base).string();
+                                    scene.createSceneAsset(platform, u.Scalar(), relativeUrl, base);
                                 }
                             }
                         }
@@ -194,12 +227,15 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
 
     // Resolve data source URLs.
 
+    // TODO: create assets for sources
     if (Node sources = root["sources"]) {
         for (auto source : sources) {
             if (!source.second.IsMap()) { continue; }
             if (Node sourceUrl = source.second["url"]) {
                 if (nodeIsPotentialUrl(sourceUrl)) {
-                    sourceUrl = Url(sourceUrl.Scalar()).resolved(base).string();
+                    auto resolvedUrl = Url(sourceUrl.Scalar()).resolved(base);
+                    sourceUrl = (resolvedUrl.isAbsolute()) ?
+                            resolvedUrl.string() : platform->resolveAssetPath(resolvedUrl.string());
                 }
             }
         }
@@ -213,13 +249,17 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
                 if (font.second.IsMap()) {
                     auto urlNode = font.second["url"];
                     if (nodeIsPotentialUrl(urlNode)) {
+                        relativeUrl = urlNode.Scalar();
                         urlNode = Url(urlNode.Scalar()).resolved(base).string();
+                        scene.createSceneAsset(platform, urlNode.Scalar(), relativeUrl, base);
                     }
                 } else if (font.second.IsSequence()) {
                     for (auto& fontNode : font.second) {
                         auto urlNode = fontNode["url"];
                         if (nodeIsPotentialUrl(urlNode)) {
+                            relativeUrl = urlNode.Scalar();
                             urlNode = Url(urlNode.Scalar()).resolved(base).string();
+                            scene.createSceneAsset(platform, urlNode.Scalar(), relativeUrl, base);
                         }
                     }
                 }
@@ -228,21 +268,29 @@ void Importer::resolveSceneUrls(Node& root, const Url& base) {
     }
 }
 
-std::string Importer::getSceneString(const Url& scenePath) {
-    return stringFromFile(scenePath.string().c_str());
+std::string Importer::getSceneString(const std::shared_ptr<Platform>& platform,
+        const Url& scenePath, const std::shared_ptr<Asset>& asset) {
+    if (!asset) { return "";}
+
+    return asset->readStringFromAsset(platform);
 }
 
-std::vector<Url> Importer::getResolvedImportUrls(const Node& scene, const Url& base) {
+std::vector<Url> Importer::getResolvedImportUrls(const std::shared_ptr<Platform>& platform,
+        std::shared_ptr<Scene>& scene, const Node& sceneNode, const Url& base) {
 
     std::vector<Url> scenePaths;
 
-    if (const Node& import = scene["import"]) {
+    if (const Node& import = sceneNode["import"]) {
         if (import.IsScalar()) {
-            scenePaths.push_back(Url(import.Scalar()).resolved(base));
+            auto resolvedUrl = Url(import.Scalar()).resolved(base);
+            scene->createSceneAsset(platform, resolvedUrl, import.Scalar(), base);
+            scenePaths.push_back(resolvedUrl);
         } else if (import.IsSequence()) {
             for (const auto& path : import) {
                 if (path.IsScalar()) {
-                    scenePaths.push_back(Url(path.Scalar()).resolved(base));
+                    auto resolvedUrl = Url(path.Scalar()).resolved(base);
+                    scene->createSceneAsset(platform, resolvedUrl, path.Scalar(), base);
+                    scenePaths.push_back(resolvedUrl);
                 }
             }
         }
@@ -251,13 +299,15 @@ std::vector<Url> Importer::getResolvedImportUrls(const Node& scene, const Url& b
     return scenePaths;
 }
 
-void Importer::importScenesRecursive(Node& root, const Url& scenePath, std::vector<Url>& sceneStack) {
+void Importer::importScenesRecursive(const std::shared_ptr<Platform>& platform,
+        std::shared_ptr<Scene>& scene, Node& root, const Url& scenePath, std::vector<Url>& sceneStack) {
 
     LOGD("Starting importing Scene: %s", scenePath.string().c_str());
 
     for (const auto& s : sceneStack) {
         if (scenePath == s) {
-            LOGE("%s will cause a cyclic import. Stopping this scene from being imported", scenePath.string().c_str());
+            LOGE("%s will cause a cyclic import. Stopping this scene from being imported",
+                    scenePath.string().c_str());
             return;
         }
     }
@@ -269,14 +319,14 @@ void Importer::importScenesRecursive(Node& root, const Url& scenePath, std::vect
     if (sceneNode.IsNull()) { return; }
     if (!sceneNode.IsMap()) { return; }
 
-    auto imports = getResolvedImportUrls(sceneNode, scenePath);
+    auto imports = getResolvedImportUrls(platform, scene, sceneNode, scenePath);
 
     // Don't want to merge imports, so remove them here.
     sceneNode.remove("import");
 
     for (const auto& url : imports) {
 
-        importScenesRecursive(root, url, sceneStack);
+        importScenesRecursive(platform, scene, root, url, sceneStack);
 
     }
 
@@ -284,7 +334,7 @@ void Importer::importScenesRecursive(Node& root, const Url& scenePath, std::vect
 
     mergeMapFields(root, sceneNode);
 
-    resolveSceneUrls(root, scenePath);
+    resolveSceneUrls(platform, *scene, root, scenePath);
 }
 
 void Importer::mergeMapFields(Node& target, const Node& import) {
@@ -306,6 +356,7 @@ void Importer::mergeMapFields(Node& target, const Node& import) {
         }
 
         switch(dest.Type()) {
+            case NodeType::Null:
             case NodeType::Scalar:
             case NodeType::Sequence:
                 dest = source;
@@ -321,6 +372,9 @@ void Importer::mergeMapFields(Node& target, const Node& import) {
                 break;
             }
             default:
+                // NodeType::Undefined is handled above by checking (!dest).
+                // All types are handled, so this should never be reached.
+                assert(false);
                 break;
         }
     }

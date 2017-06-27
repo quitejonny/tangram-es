@@ -1,13 +1,22 @@
 #pragma once
 
+#include "util/util.h"
+
+#include "aabb.h"
+#include "glm/vec2.hpp"
 #include <string>
 #include <array>
-#include "util/util.h"
-#include "glm/vec2.hpp"
 
 namespace Tangram {
 
 namespace LabelProperty {
+
+enum Placement : uint8_t {
+    vertex = 0,
+    midpoint,
+    spaced,
+    centroid,
+};
 
 enum Anchor : uint8_t {
     center = 0,
@@ -24,6 +33,14 @@ enum Anchor : uint8_t {
 constexpr int max_anchors = 9;
 
 struct Anchors {
+
+    Anchors() {}
+
+    Anchors(LabelProperty::Anchor _anchor) {
+        anchor[0] = _anchor;
+        count = 1;
+    }
+
     std::array<LabelProperty::Anchor, LabelProperty::max_anchors> anchor;
     int count = 0;
 
@@ -35,9 +52,65 @@ struct Anchors {
         return anchor == _other.anchor && count == _other.count;
     }
 
+    isect2d::AABB<glm::vec2> extents(glm::vec2 size) {
+
+        glm::vec2 min{0};
+        glm::vec2 max{0};
+
+        for (int i = 0; i < count; i++) {
+            switch(anchor[i]) {
+            case center:
+                min.x = std::min(min.x, -0.5f);
+                min.y = std::min(min.y, -0.5f);
+                max.x = std::max(max.x, 0.5f);
+                max.y = std::max(max.y, 0.5f);
+                break;
+            case top:
+                min.x = std::min(min.x, -0.5f);
+                min.y = -1.0f;
+                max.x = std::max(max.x, 0.5f);
+                break;
+            case bottom:
+                min.x = std::min(min.x, -0.5f);
+                max.x = std::max(max.x, 0.5f);
+                max.y = 1.0f;
+                break;
+            case left:
+                min.x = -1.0f;
+                min.y = std::min(min.y, -0.5f);
+                max.y = std::max(max.y, 0.5f);
+                break;
+            case right:
+                min.y = std::min(min.y, -0.5f);
+                max.x = 1.0f;
+                max.y = std::max(max.y, 0.5f);
+                break;
+            case top_left:
+                min.x = -1.0f;
+                min.y = -1.0f;
+                break;
+            case top_right:
+                min.y = -1.0f;
+                max.x = 1.0f;
+                break;
+            case bottom_left:
+                min.x = -1.0f;
+                max.y = 1.0f;
+                break;
+            case bottom_right:
+                max.x = 1.0f;
+                max.y = 1.0f;
+                break;
+            }
+        }
+        // TODO add AABB constructor to pass min/max
+        return isect2d::AABB<glm::vec2>(min.x * size.x, min.y * size.y,
+                                        max.x * size.x, max.y * size.y);
+    }
 };
 
 bool anchor(const std::string& _transform, Anchor& _out);
+bool placement(const std::string& placement, Placement& out);
 
 glm::vec2 anchorDirection(Anchor _anchor);
 

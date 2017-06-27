@@ -22,6 +22,21 @@ function(check_unsupported_compiler_version)
 
 endfunction(check_unsupported_compiler_version)
 
+function(get_mapzen_api_key KEY_RESULT)
+
+    set(${KEY_RESULT} $ENV{MAPZEN_API_KEY} PARENT_SCOPE)
+
+    if(${KEY_RESULT} STREQUAL "")
+        message(SEND_ERROR
+            "Make sure to provide an api key to build the demo application, "
+            "you can create an API key at https://mapzen.com/developers. "
+            "Then run 'export MAPZEN_API_KEY mapzen-xxxx' or specify `MAPZEN_API_KEY=mapzen-xxxx` as an argument to the make command")
+        return()
+    endif()
+
+endfunction(get_mapzen_api_key)
+
+
 function(find_sources_and_include_directories HEADERS_PATH SOURCES_PATH)
     include_recursive_dirs(${HEADERS_PATH})
     file(GLOB_RECURSE FOUND_SOURCES ${SOURCES_PATH})
@@ -78,8 +93,8 @@ macro(group_recursive_sources CURDIR CURGROUP)
             if("${CURGROUP}" STREQUAL "")
                 source_group(${group} FILES ${FOUND_HEADERS} ${FOUND_SOURCES})
             else()
-                source_group(${CURGROUP}\\${group} FILES ${FOUND_HEADERS} ${FOUND_SOURCES})
-                set(group ${CURGROUP}\\\\${group})
+                source_group(${CURGROUP}/${group} FILES ${FOUND_HEADERS} ${FOUND_SOURCES})
+                set(group ${CURGROUP}/${group})
             endif()
 
             group_recursive_sources(${child} ${group})

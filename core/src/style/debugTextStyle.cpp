@@ -1,9 +1,8 @@
-#include "debugTextStyle.h"
+#include "style/debugTextStyle.h"
 
-#include "textStyleBuilder.h"
 #include "labels/textLabels.h"
 #include "scene/drawRule.h"
-
+#include "style/textStyleBuilder.h"
 #include "tangram.h"
 #include "tile/tile.h"
 
@@ -58,12 +57,13 @@ std::unique_ptr<StyledMesh> DebugTextStyleBuilder::build() {
 
     params.font = m_style.context()->getFont("sans-serif", "normal", "400", 32 * m_style.pixelScale());
 
-    if (!prepareLabel(params, Label::Type::debug)) {
+    TextStyleBuilder::LabelAttributes attrib;
+    if (!prepareLabel(params, Label::Type::debug, attrib)) {
         return nullptr;
     }
 
     DrawRule rule({"", 0, {}}, "", 0);
-    addLabel(params, Label::Type::debug, { glm::vec3(0.5f, 0.5f, 0.f) }, rule);
+    addLabel(Label::Type::debug, {{ glm::vec3(0.5f, 0.5f, 0.f) }}, params, attrib, rule);
 
     m_textLabels->setLabels(m_labels);
 
