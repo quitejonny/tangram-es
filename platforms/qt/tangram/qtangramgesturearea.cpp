@@ -690,6 +690,7 @@ void QTangramGestureArea::actionStateMachine()
 void QTangramGestureArea::startPan()
 {
     // Update startCoord_ to ensure smooth start for panning when going over startDragDistance
+    emit panStarted();
     QGeoCoordinate newStartCoord = m_map->itemPositionToCoordinate(m_sceneCenter);
     m_startCoord.setLongitude(newStartCoord.longitude());
     m_startCoord.setLatitude(newStartCoord.latitude());

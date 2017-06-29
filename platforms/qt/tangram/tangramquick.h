@@ -21,6 +21,7 @@ class QDeclarativeTangramMap : public QQuickFramebufferObject
 {
     Q_OBJECT
     Q_INTERFACES(QQmlParserStatus)
+    Q_PROPERTY(QTangramGestureArea *gesture READ gesture CONSTANT)
     Q_PROPERTY(QUrl sceneConfiguration READ sceneConfiguration WRITE setSceneConfiguration NOTIFY sceneConfigurationChanged)
     Q_PROPERTY(QGeoCoordinate center READ center WRITE setCenter NOTIFY centerChanged)
     Q_PROPERTY(qreal heading READ heading WRITE setHeading NOTIFY headingChanged)
@@ -32,6 +33,8 @@ class QDeclarativeTangramMap : public QQuickFramebufferObject
 public:
     explicit QDeclarativeTangramMap(QQuickItem *parent = 0);
     ~QDeclarativeTangramMap();
+
+    QTangramGestureArea *gesture();
 
     void setZoomLevel(const qreal zoomLevel);
     qreal zoomLevel() const;
@@ -101,16 +104,6 @@ private Q_SLOTS:
     void mapPixelScaleChanged(qreal pixelScale);
 
 private:
-    enum SyncState {
-        NothingNeedsSync = 0,
-        ZoomNeedsSync    = 1 << 0,
-        CenterNeedsSync  = 1 << 1,
-        StyleNeedsSync   = 1 << 2,
-        PanNeedsSync     = 1 << 3,
-        BearingNeedsSync = 1 << 4,
-        PitchNeedsSync   = 1 << 5,
-    };
-
     QUrl m_sceneUrl;
     QGeoCoordinate m_center;
     qreal m_heading;
@@ -120,7 +113,6 @@ private:
     qreal m_pixelScale;
     bool m_continuousRendering;
 
-    int m_syncState = NothingNeedsSync;
     QTangramMap* m_map;
     QTangramGestureArea* m_gestureArea;
 

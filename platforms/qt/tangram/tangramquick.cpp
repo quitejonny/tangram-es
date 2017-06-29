@@ -47,6 +47,11 @@ QDeclarativeTangramMap::~QDeclarativeTangramMap()
 {
 }
 
+QTangramGestureArea *QDeclarativeTangramMap::gesture()
+{
+    return m_gestureArea;
+}
+
 QSGNode *QDeclarativeTangramMap::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 {
     // before Qt5.6: mirror vertically
@@ -301,7 +306,6 @@ void QDeclarativeTangramMap::addMapItem(QTangramGeometry *item)
 
 void QDeclarativeTangramMap::populateMap()
 {
-    qDebug() << Q_FUNC_INFO;
     QObjectList kids = children();
     for (auto &kid : kids) {
         auto *mapItem = qobject_cast<QTangramGeometry *>(kid);
@@ -354,10 +358,9 @@ void TangramQuickRenderer::render()
         QMutexLocker locker(&m_map->m_mutex);
         m_map->tangramObject()->update((float)m_elapsedTimer.elapsed() / 100.f);
         m_map->tangramObject()->render();
-    m_elapsedTimer.restart();
+        m_elapsedTimer.restart();
 
-    f->glActiveTexture(GL_TEXTURE0);
-    update();
+        f->glActiveTexture(GL_TEXTURE0);
     }
 }
 
@@ -374,7 +377,6 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
 
 QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QSize &size)
 {
-    qDebug() << Q_FUNC_INFO << size;
     if (!m_glInitialized)
         initializeGL();
     {

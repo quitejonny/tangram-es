@@ -74,7 +74,7 @@ class QTangramGestureArea: public QQuickItem
     Q_PROPERTY(bool preventStealing READ preventStealing WRITE setPreventStealing NOTIFY preventStealingChanged REVISION 1)
 
 public:
-    QTangramGestureArea(QDeclarativeTangramMap *map);
+    QTangramGestureArea(QDeclarativeTangramMap *map = NULL);
     ~QTangramGestureArea();
 
     enum TangramMapGesture {
