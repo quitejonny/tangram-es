@@ -16,7 +16,11 @@ class QDeclarativeTangramMap;
 class QTouchEvent;
 class QWheelEvent;
 class QTangramMap;
-//class QTangramPoint;
+class QTangramPoint;
+
+namespace Tangram {
+struct MarkerPickResult;
+}
 
 class QTangramMapPinchEvent : public QObject
 {
@@ -73,6 +77,7 @@ class QTangramGestureArea: public QQuickItem
     Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
     Q_PROPERTY(bool pinchActive READ isPinchActive NOTIFY pinchActiveChanged)
     Q_PROPERTY(bool panActive READ isPanActive NOTIFY panActiveChanged)
+    Q_PROPERTY(bool dragActive READ isDragActive NOTIFY dragActiveChanged)
     Q_PROPERTY(bool rotationActive READ isRotationActive NOTIFY rotationActiveChanged)
     Q_PROPERTY(bool tiltActive READ isTiltActive NOTIFY tiltActiveChanged)
     Q_PROPERTY(AcceptedGestures acceptedGestures READ acceptedGestures WRITE setAcceptedGestures NOTIFY acceptedGesturesChanged)
@@ -101,6 +106,7 @@ public:
     bool isRotationActive() const;
     bool isTiltActive() const;
     bool isPanActive() const;
+    bool isDragActive() const;
     bool isActive() const;
 
     bool enabled() const;
@@ -117,6 +123,9 @@ public:
     void handleMouseUngrabEvent();
     void handleTouchUngrabEvent();
 
+    void onClickedFeatures(const Tangram::MarkerPickResult *result);
+    void onDragFeatures(const Tangram::MarkerPickResult *result);
+
     void setMap(QPointer<QTangramMap> map);
 
     bool preventStealing() const;
@@ -124,6 +133,7 @@ public:
 
 Q_SIGNALS:
     void panActiveChanged();
+    void dragActiveChanged();
     void pinchActiveChanged();
     void rotationActiveChanged();
     void tiltActiveChanged();
@@ -135,6 +145,8 @@ Q_SIGNALS:
     void pinchFinished(QTangramMapPinchEvent *pinch);
     void panStarted();
     void panFinished();
+    void dragStarted();
+    void dragFinished();
     void flickStarted();
     void flickFinished();
     void rotationStarted(QTangramMapPinchEvent *pinch);
@@ -181,6 +193,14 @@ private:
     bool canStartPan();
     void updatePan();
     bool tryStartFlick();
+
+    void dragStateMachine();
+    bool canStartDrag();
+    void startDrag();
+    void updateDrag();
+    void endDrag();
+
+    void tryToClick();
 
     bool pinchEnabled() const;
     void setPinchEnabled(bool enabled);
@@ -250,11 +270,18 @@ private:
         bool m_panEnabled;
     } m_flick;
 
+    struct Drag
+    {
+        Drag() : m_id(0), m_latitudeDistance(0), m_longitudeDistance(0) {}
+        QTangramPoint* m_item;
+        int m_id;
+        qreal m_latitudeDistance;
+        qreal m_longitudeDistance;
+
+    } m_drag;
 
     // these are calculated regardless of gesture or number of touch points
     QVector2D m_flickVector;
-    qreal m_flickVelocityX;
-    qreal m_flickVelocityY;
     QElapsedTimer m_lastPosTime;
     QPointF m_lastPos;
     QVector<QTouchEvent::TouchPoint> m_allPoints;
@@ -312,11 +339,19 @@ private:
         flickActive
     } m_flickState;
 
+    enum DragState
+    {
+        dragInactive,
+        dragReady,
+        dragActive
+    } m_dragState;
+
     inline void setTouchPointState(const TouchPointState state);
     inline void setFlickState(const FlickState state);
     inline void setTiltState(const TiltState state);
     inline void setRotationState(const RotationState state);
     inline void setPinchState(const PinchState state);
+    inline void setDragState(const DragState state);
 };
 
 QML_DECLARE_TYPE(QTangramGestureArea)
