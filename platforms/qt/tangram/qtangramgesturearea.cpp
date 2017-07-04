@@ -14,44 +14,22 @@
 #include <cmath>
 
 
-#define QML_MAP_FLICK_DEFAULTMAXVELOCITY 2500
-#define QML_MAP_FLICK_MINIMUMDECELERATION 500
-#define QML_MAP_FLICK_DEFAULTDECELERATION 2500
-#define QML_MAP_FLICK_MAXIMUMDECELERATION 10000
-
 #define QML_MAP_FLICK_VELOCITY_SAMPLE_PERIOD 38
-// FlickThreshold determines how far the "mouse" must have moved
-// before we perform a flick.
-static const int FlickThreshold = 20;
-// Really slow flicks can be annoying.
-static const qreal MinimumFlickVelocity = 75.0;
 // Tolerance for detecting two finger sliding start
 static const qreal MaximumParallelPosition = 40.0; // in degrees
 // Tolerance for detecting parallel sliding
-static const qreal MaximumParallelSlidingAngle = 4.0; // in degrees
+static const qreal MaximumParallelSlidingAngle = 6.0; // in degrees
 // Tolerance for starting rotation
-static const qreal MinimumRotationStartingAngle = 15.0; // in degrees
+static const qreal MinimumRotationStartingAngle = 20.0; // in degrees
 // Tolerance for starting pinch
 static const qreal MinimumPinchDelta = 40; // in pixels
 // Tolerance for starting tilt when sliding vertical
-static const qreal MinimumPanToTiltDelta = 80; // in pixels;
+static const qreal MinimumPanToTiltDelta = 40; // in pixels;
 
 static qreal distanceBetweenTouchPoints(const QPointF &p1, const QPointF &p2)
 {
     return QLineF(p1, p2).length();
 }
-
-// Returns the new map center after anchoring coordinate to anchorPoint on the screen
-// Approach: find the displacement in (wrapped) mercator space, and apply that to the center
-// static QGeoCoordinate anchorCoordinateToPoint(QTangramMap &map, const QGeoCoordinate &coordinate, const QPointF &anchorPoint)
-// {
-//     QDoubleVector2D centerProj = map.geoProjection().geoToWrappedMapProjection(map.cameraData().center());
-//     QDoubleVector2D coordProj  = map.geoProjection().geoToWrappedMapProjection(coordinate);
-//
-//     QDoubleVector2D anchorProj = map.geoProjection().itemPositionToWrappedMapProjection(QDoubleVector2D(anchorPoint));
-//     // Y-clamping done in mercatorToCoord
-//     return map.geoProjection().wrappedMapProjectionToGeo(centerProj + coordProj - anchorProj);
-// }
 
 static qreal angleFromPoints(const QPointF &p1, const QPointF &p2)
 {
@@ -211,7 +189,7 @@ bool QTangramGestureArea::isTiltActive() const
 
 bool QTangramGestureArea::isPanActive() const
 {
-    return m_flickState == panActive || m_flickState == flickActive;
+    return m_flickState == panActive;
 }
 
 bool QTangramGestureArea::isDragActive() const
@@ -317,23 +295,6 @@ void QTangramGestureArea::setFlickEnabled(bool enabled)
     }
 }
 
-qreal QTangramGestureArea::flickDeceleration() const
-{
-    return m_flick.m_deceleration;
-}
-
-void QTangramGestureArea::setFlickDeceleration(qreal deceleration)
-{
-    if (deceleration < QML_MAP_FLICK_MINIMUMDECELERATION)
-        deceleration = QML_MAP_FLICK_MINIMUMDECELERATION;
-    else if (deceleration > QML_MAP_FLICK_MAXIMUMDECELERATION)
-        deceleration = QML_MAP_FLICK_MAXIMUMDECELERATION;
-    if (deceleration == m_flick.m_deceleration)
-        return;
-    m_flick.m_deceleration = deceleration;
-    emit flickDecelerationChanged();
-}
-
 QTouchEvent::TouchPoint* createTouchPointFromMouseEvent(QMouseEvent *event, Qt::TouchPointState state)
 {
     // this is only partially filled. But since it is only partially used it works
@@ -420,7 +381,7 @@ void QTangramGestureArea::handleWheelEvent(QWheelEvent *event)
     qreal scale = 1 + qreal(0.003)*scaleDelta;
     m_map->tangramObject()->handlePinchGesture(event->pos().x(), event->pos().y(), scale, 0.f);
 
-    //emit m_map->mapController()->zoomChanged(m_map->mapController()->zoom());
+    emit m_map->mapController()->zoomChanged(m_map->mapController()->zoom());
     event->accept();
 }
 
@@ -440,9 +401,7 @@ void QTangramGestureArea::updateFlickParameters(const QPointF &pos)
 
     if (elapsed >= QML_MAP_FLICK_VELOCITY_SAMPLE_PERIOD) {
         elapsed /= 1000.;
-        qreal vel  = distanceBetweenTouchPoints(pos, m_lastPos) / elapsed;
-        m_flickVector = (QVector2D(pos) - QVector2D(m_lastPos)).normalized();
-        m_flickVector *= qBound<qreal>(-m_flick.m_maxVelocity, vel, m_flick.m_maxVelocity);
+        m_flickVector = (QVector2D(pos) - QVector2D(m_lastPos)) / elapsed;
 
         m_lastPos = pos;
         m_lastPosTime.restart();
@@ -1000,22 +959,13 @@ void QTangramGestureArea::panStateMachine()
         break;
     case panActive:
         if (m_allPoints.count() == 0) {
-            if (!tryStartFlick())
-            {
-                setFlickState(flickInactive);
-                // mark as inactive for use by camera
-                if (m_pinchState == pinchInactive && m_rotationState == rotationInactive && m_tiltState == tiltInactive) {
-                    m_declarativeMap->setKeepMouseGrab(m_preventStealing);
-                }
-                emit panFinished();
-            } else {
-                setFlickState(flickActive);
-                emit panFinished();
-                emit flickStarted();
-            }
+            setFlickState(tryStartFlick() ? flickTried : flickInactive);
+            if (m_pinchState == pinchInactive && m_rotationState == rotationInactive && m_tiltState == tiltInactive)
+                m_declarativeMap->setKeepMouseGrab(m_preventStealing);
+            emit panFinished();
         }
         break;
-    case flickActive:
+    case flickTried:
         if (m_allPoints.count() > 0) { // re touched before movement ended
             m_declarativeMap->setKeepMouseGrab(true);
             setFlickState(panActive);
@@ -1036,7 +986,7 @@ void QTangramGestureArea::panStateMachine()
         if (lastState != panActive)
             emit panStarted();
         break;
-    case flickActive:
+    case flickTried:
         break;
     }
 }
@@ -1068,31 +1018,10 @@ bool QTangramGestureArea::tryStartFlick()
 {
     if ((m_acceptedGestures & FlickGesture) == 0)
         return false;
-    // if we drag then pause before release we should not cause a flick.
-    qreal flickSpeed = 0.0;
-    if (m_lastPosTime.elapsed() < QML_MAP_FLICK_VELOCITY_SAMPLE_PERIOD)
-        flickSpeed = m_flickVector.length();
 
-    int flickTime = 0;
-    int flickPixels = 0;
-    QVector2D flickVector;
-
-    if (qAbs(flickSpeed) > MinimumFlickVelocity
-            && distanceBetweenTouchPoints(m_touchPointsCentroid, m_sceneStartPoint1) > FlickThreshold) {
-        qreal acceleration = m_flick.m_deceleration;
-        if ((flickSpeed > 0.0f) == (m_flick.m_deceleration > 0.0f))
-            acceleration = acceleration * -1.0f;
-        flickTime = static_cast<int>(-1000 * flickSpeed / acceleration);
-        flickPixels = (flickTime * flickSpeed) / 500.0;
-        flickVector = m_flickVector.normalized() * flickPixels;
-    }
-
-    if (flickTime > 0) {
-        m_map->tangramObject()->handleFlingGesture(m_touchPointsCentroid.x(), m_touchPointsCentroid.y(),
-                                                   flickVector.x(), flickVector.y());
-        return true;
-    }
-    return false;
+    m_map->tangramObject()->handleFlingGesture(m_lastPos.x(), m_lastPos.y(),
+                                               m_flickVector.x(), m_flickVector.y());
+    return true;
 }
 
 void QTangramGestureArea::stopPan()

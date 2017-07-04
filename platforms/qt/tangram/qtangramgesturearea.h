@@ -3,17 +3,12 @@
 
 #include <QtQuick/QQuickItem>
 #include <QTouchEvent>
-#include <QDebug>
 #include <QElapsedTimer>
-#include <QGeoCoordinate>
 
 #include <QtGui/QVector2D>
 #include <QtCore/QPointer>
 
-//#include "tangram.h"
-
 class QDeclarativeTangramMap;
-class QTouchEvent;
 class QWheelEvent;
 class QTangramMap;
 class QTangramPoint;
@@ -81,7 +76,6 @@ class QTangramGestureArea: public QQuickItem
     Q_PROPERTY(bool rotationActive READ isRotationActive NOTIFY rotationActiveChanged)
     Q_PROPERTY(bool tiltActive READ isTiltActive NOTIFY tiltActiveChanged)
     Q_PROPERTY(AcceptedGestures acceptedGestures READ acceptedGestures WRITE setAcceptedGestures NOTIFY acceptedGesturesChanged)
-    Q_PROPERTY(qreal flickDeceleration READ flickDeceleration WRITE setFlickDeceleration NOTIFY flickDecelerationChanged)
     Q_PROPERTY(bool preventStealing READ preventStealing WRITE setPreventStealing NOTIFY preventStealingChanged REVISION 1)
 
 public:
@@ -112,9 +106,6 @@ public:
     bool enabled() const;
     void setEnabled(bool enabled);
 
-    qreal flickDeceleration() const;
-    void setFlickDeceleration(qreal deceleration);
-
     void handleTouchEvent(QTouchEvent *event);
     void handleWheelEvent(QWheelEvent *event);
     void handleMousePressEvent(QMouseEvent *event);
@@ -139,7 +130,6 @@ Q_SIGNALS:
     void tiltActiveChanged();
     void enabledChanged();
     void acceptedGesturesChanged();
-    void flickDecelerationChanged();
     void pinchStarted(QTangramMapPinchEvent *pinch);
     void pinchUpdated(QTangramMapPinchEvent *pinch);
     void pinchFinished(QTangramMapPinchEvent *pinch);
@@ -147,8 +137,6 @@ Q_SIGNALS:
     void panFinished();
     void dragStarted();
     void dragFinished();
-    void flickStarted();
-    void flickFinished();
     void rotationStarted(QTangramMapPinchEvent *pinch);
     void rotationUpdated(QTangramMapPinchEvent *pinch);
     void rotationFinished(QTangramMapPinchEvent *pinch);
@@ -262,10 +250,8 @@ private:
 
     struct Pan
     {
-        Pan() : m_maxVelocity(2500), m_deceleration(2500), m_flickEnabled(true), m_panEnabled(true) {}
+        Pan() : m_flickEnabled(true), m_panEnabled(true) {}
 
-        qreal m_maxVelocity;
-        qreal m_deceleration;
         bool m_flickEnabled;
         bool m_panEnabled;
     } m_flick;
@@ -336,7 +322,7 @@ private:
     {
         flickInactive,
         panActive,
-        flickActive
+        flickTried
     } m_flickState;
 
     enum DragState

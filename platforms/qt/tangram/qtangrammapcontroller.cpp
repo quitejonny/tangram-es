@@ -15,6 +15,7 @@ QTangramMapController::~QTangramMapController() {}
 
 void QTangramMapController::setCenter(const QGeoCoordinate &center)
 {
+    qDebug() << Q_FUNC_INFO;
     if (center == this->center())
         return;
 

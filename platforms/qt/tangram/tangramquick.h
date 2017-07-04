@@ -28,7 +28,6 @@ class QDeclarativeTangramMap : public QQuickFramebufferObject
     Q_PROPERTY(qreal zoomLevel READ zoomLevel WRITE setZoomLevel NOTIFY zoomLevelChanged)
     Q_PROPERTY(qreal tilt READ tilt WRITE setTilt NOTIFY tiltChanged)
     Q_PROPERTY(qreal rotation READ rotation WRITE setRotation NOTIFY rotationChanged)
-    Q_PROPERTY(bool continuousRendering READ continuousRendering WRITE setContinuousRendering NOTIFY continuousRenderingChanged)
     Q_PROPERTY(qreal pixelScale READ pixelScale WRITE setPixelScale NOTIFY pixelScaleChanged)
 public:
     explicit QDeclarativeTangramMap(QQuickItem *parent = 0);
@@ -77,7 +76,6 @@ Q_SIGNALS:
     void zoomLevelChanged(qreal);
     void tiltChanged(qreal);
     void rotationChanged(qreal rotation);
-    void continuousRenderingChanged(bool);
     void pixelScaleChanged(qreal pixelScale);
 
 protected:
@@ -140,11 +138,9 @@ private:
     QElapsedTimer m_elapsedTimer;
     bool m_glInitialized;
     bool m_useScenePosition;
-    QMutex m_renderMutex;
+    bool m_continuousRendering;
 
     QTangramMap* m_map;
-
-    QScopedPointer<QOpenGLShaderProgram> m_program;
 };
 
 QML_DECLARE_TYPE(QDeclarativeTangramMap)

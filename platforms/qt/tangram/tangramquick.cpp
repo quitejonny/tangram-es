@@ -22,6 +22,7 @@ QDeclarativeTangramMap::QDeclarativeTangramMap(QQuickItem *parent)
       m_tilt(0),
       m_rotation(0),
       m_pixelScale(1),
+      m_continuousRendering(false),
       m_map(NULL),
       m_gestureArea(new QTangramGestureArea(this))
 {
@@ -121,8 +122,6 @@ void QDeclarativeTangramMap::setSceneConfiguration(const QUrl &scene)
     if (m_sceneUrl != scene) {
         m_sceneUrl = scene;
         emit sceneConfigurationChanged();
-
-        update();
     }
 }
 
@@ -138,7 +137,6 @@ void QDeclarativeTangramMap::setCenter(const QGeoCoordinate &center)
 
     m_center = center;
     m_map->mapController()->setCenter(m_center);
-    update();
 }
 
 QGeoCoordinate QDeclarativeTangramMap::center() const
@@ -151,7 +149,6 @@ void QDeclarativeTangramMap::setHeading(const qreal heading)
     if (m_heading != heading) {
         m_heading = heading;
         emit headingChanged();
-        update();
     }
 }
 
@@ -221,7 +218,6 @@ void QDeclarativeTangramMap::setContinuousRendering(const bool continuousRenderi
 {
     if (m_continuousRendering != continuousRendering) {
         m_continuousRendering = continuousRendering;
-        emit continuousRenderingChanged(continuousRendering);
     }
 }
 
@@ -321,9 +317,10 @@ void QDeclarativeTangramMap::componentComplete()
 
 TangramQuickRenderer::TangramQuickRenderer(QTangramMap *map)
     : QQuickFramebufferObject::Renderer(),
-    m_glInitialized(false),
-    m_useScenePosition(false),
-    m_map(map)
+      m_glInitialized(false),
+      m_useScenePosition(false),
+      m_continuousRendering(false),
+      m_map(map)
 {
 }
 
@@ -333,20 +330,14 @@ TangramQuickRenderer::~TangramQuickRenderer()
 
 void TangramQuickRenderer::initializeGL()
 {
-    m_program.reset(new QOpenGLShaderProgram);
-    m_program->link();
-
     auto f = QOpenGLContext::currentContext()->functions();
     auto context = QOpenGLContext::currentContext();
     Tangram::setQtGlFunctions(context);
 
     qDebug() << Q_FUNC_INFO << "Version:" << f->glGetString(GL_VERSION);
 
-    {
-        QMutexLocker locker(&m_map->m_mutex);
-        m_map->setScene(m_sceneUrl, m_useScenePosition);
-        m_map->tangramObject()->setupGL();
-    }
+    m_map->tangramObject()->setupGL();
+    m_map->setScene(m_sceneUrl, m_useScenePosition);
 
     m_glInitialized = true;
 }
@@ -354,14 +345,14 @@ void TangramQuickRenderer::initializeGL()
 void TangramQuickRenderer::render()
 {
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-    {
-        QMutexLocker locker(&m_map->m_mutex);
-        m_map->tangramObject()->update((float)m_elapsedTimer.elapsed() / 100.f);
-        m_map->tangramObject()->render();
-        m_elapsedTimer.restart();
+    m_map->tangramObject()->update((float)m_elapsedTimer.elapsed() / 1000.f);
+    m_map->tangramObject()->render();
+    m_elapsedTimer.restart();
 
-        f->glActiveTexture(GL_TEXTURE0);
-    }
+    if (m_continuousRendering)
+        update();
+
+    f->glActiveTexture(GL_TEXTURE0);
 }
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
@@ -371,6 +362,7 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
         return;
 
     m_useScenePosition = !(quickMap->m_center.isValid() && quickMap->m_zoomLevel != -1);
+    m_continuousRendering = quickMap->m_continuousRendering;
 
     m_sceneUrl = quickMap->sceneConfiguration();
 }

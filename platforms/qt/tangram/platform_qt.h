@@ -10,6 +10,7 @@
 #define TANGRAM_REQ_RENDER_EVENT_TYPE   (QEvent::Type)(QEvent::User + 1)
 
 class QObject;
+class QDeclarativeTangramMap;
 class QOpenGLContext;
 
 namespace Tangram {
@@ -18,7 +19,7 @@ class QtPlatform : public Platform {
 
 public:
     QtPlatform();
-    QtPlatform(QObject *quickItem);
+    QtPlatform(QDeclarativeTangramMap *quickItem);
     ~QtPlatform() override;
     void requestRender() const override;
 
@@ -38,7 +39,7 @@ protected:
     bool bytesFromFileSystem(const char* _path, std::function<char*(size_t)> _allocator) const;
 
 private:
-    QObject *m_quickItem;
+    QDeclarativeTangramMap *m_quickItem;
     ContentDownloader *m_downloader;
 
 };

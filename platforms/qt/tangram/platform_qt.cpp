@@ -19,9 +19,9 @@
 #include <sys/resource.h>
 #include <sys/syscall.h>
 #include <QCoreApplication>
-#include <QObject>
 #include <QWindow>
 
+#include "tangramquick.h"
 #include "contentdownloader.h"
 
 #define NUM_WORKERS 5
@@ -65,7 +65,7 @@ QtPlatform::QtPlatform()
 }
 
 
-QtPlatform::QtPlatform(QObject *quickItem)
+QtPlatform::QtPlatform(QDeclarativeTangramMap *quickItem)
     : m_quickItem(quickItem),
       m_downloader(new ContentDownloader(quickItem))
 {
@@ -84,12 +84,12 @@ void QtPlatform::requestRender() const
 
 void QtPlatform::setContinuousRendering(bool _isContinuous)
 {
-    m_quickItem->setProperty("continuousRendering", QVariant::fromValue(_isContinuous));
+    m_quickItem->setContinuousRendering(_isContinuous);
 }
 
 bool QtPlatform::isContinuousRendering() const
 {
-    return m_quickItem->property("continuousRendering").toBool();
+    return m_quickItem->continuousRendering();
 }
 
 bool QtPlatform::bytesFromFileSystem(const char* _path, std::function<char*(size_t)> _allocator) const
