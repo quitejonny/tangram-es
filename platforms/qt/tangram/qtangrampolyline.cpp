@@ -9,56 +9,13 @@
 #include <QColor>
 #include <QDebug>
 
-QTangramPolylineProperties::QTangramPolylineProperties(QObject *parent)
-    : QTangramGeometryProperties(parent),
-      m_width(),
-      m_color()
-{
-    setColor(QColor(Qt::black));
-    setWidth(2.0);
-    setStyle(QStringLiteral("lines"));
-    setStyling(QStringLiteral("order"), QVariant::fromValue(2));
-}
-
-void QTangramPolylineProperties::setColor(const QColor &color)
-{
-    if (color == m_color)
-        return;
-    m_color = color;
-    setStyling(QStringLiteral("color"), QVariant::fromValue(color.name(QColor::HexArgb)));
-}
-
-QColor QTangramPolylineProperties::color() const
-{
-    return m_color;
-}
-
-void QTangramPolylineProperties::setWidth(qreal width)
-{
-    if (width == m_width)
-        return;
-    m_width = width;
-    setStyling(QStringLiteral("width"), QVariant::fromValue(QString::number(width) + "px"));
-}
-
-qreal QTangramPolylineProperties::width() const
-{
-    return m_width;
-}
-
-void QTangramPolylineProperties::updateProperty(QString key)
-{
-    qDebug() << Q_FUNC_INFO;
-    if (key == QStringLiteral("width")) {
-        emit widthChanged(m_width);
-    } else if (key == QStringLiteral("color")) {
-        emit colorChanged(m_color);
-    }
-}
-
 QTangramPolyline::QTangramPolyline(QObject *parent)
-    : QTangramGeometry(parent, new QTangramPolylineProperties(parent))
+    : QTangramGeometry(parent)
 {
+    m_defaultStyling["color"] = "ffffffff";
+    m_defaultStyling["width"] = "2px";
+    m_defaultStyling["style"] = "lines";
+    m_defaultStyling["order"] = 2;
 }
 
 QTangramPolyline::~QTangramPolyline()
@@ -153,11 +110,6 @@ void QTangramPolyline::setPathFromGeoList(const QList<QGeoCoordinate> &path)
 int QTangramPolyline::pathLength() const
 {
     return m_path.size();
-}
-
-QTangramPolylineProperties *QTangramPolyline::line()
-{
-    return qobject_cast<QTangramPolylineProperties *>(m_properties);
 }
 
 void QTangramPolyline::initGeometry()

@@ -7,78 +7,38 @@
 #include <QJSValue>
 #include <QDebug>
 
-QTangramGeometryProperties::QTangramGeometryProperties(QObject *parent)
-    : QObject(parent)
-{
-    setStyling(QStringLiteral("interactive"), QVariant::fromValue(false));
-}
-
-void QTangramGeometryProperties::setExtraStyling(QVariantMap styling)
-{
-    m_extraStyling = styling;
-}
-
-QVariantMap QTangramGeometryProperties::extraStyling()
-{
-    return m_extraStyling;
-}
-
-void QTangramGeometryProperties::setStyling(QString key, QVariant value)
-{
-    if (m_stylings.contains(key) && m_stylings.value(key) == value)
-        return;
-
-    if (!value.isValid())
-        m_stylings.remove(key);
-    else
-        m_stylings[key] = value;
-
-    updateProperty(key);
-    emit stylingChanged();
-}
-
-QVariantMap QTangramGeometryProperties::stylings()
-{
-    return m_stylings;
-}
-
-void QTangramGeometryProperties::setStyle(QString style)
-{
-    setStyling(QStringLiteral("style"), QVariant::fromValue(style));
-    emit styleChanged();
-}
-
-QString QTangramGeometryProperties::style()
-{
-    if (m_stylings.contains(QStringLiteral("style")))
-        return m_stylings[QStringLiteral("style")].value<QString>();
-    else
-        return QString();
-}
-
-void QTangramGeometryProperties::updateProperty(QString key)
-{
-    Q_UNUSED(key)
-}
-
-QTangramGeometry::QTangramGeometry(QObject *parent, QTangramGeometryProperties *properties)
+QTangramGeometry::QTangramGeometry(QObject *parent)
     : QObject(parent),
       m_markerId(-1),
       m_clickable(false),
-      m_properties(properties),
       m_map(0),
       m_visible(true),
-      m_drawOrder(-1)
+      m_drawOrder(-1),
+      m_styling()
 {
-    if (!properties)
-        m_properties = new QTangramGeometryProperties(parent);
-    connect(m_properties, SIGNAL(stylingChanged()), this, SLOT(setStyling()));
+    connect(this, SIGNAL(stylingChanged()), this, SLOT(setTangramStyling()));
 }
 
 QTangramGeometry::~QTangramGeometry()
 {
     if (m_tangramMap)
         m_tangramMap->markerRemove(m_markerId);
+}
+
+QString QTangramGeometry::colorToHex(const QColor color) const
+{
+    return color.name(QColor::HexArgb);
+}
+
+void QTangramGeometry::setStyling(QVariantMap styling)
+{
+    m_styling = styling;
+    emit stylingChanged();
+}
+
+QVariantMap QTangramGeometry::styling()
+{
+    return m_styling;
 }
 
 void QTangramGeometry::setVisible(bool visible)
@@ -131,7 +91,7 @@ void QTangramGeometry::setMap(QTangramMap *map)
         m_markerId = m_tangramMap->markerAdd();
         m_tangramMap->markerSetVisible(m_markerId, m_visible);
         m_tangramMap->markerSetDrawOrder(m_markerId, m_visible);
-        setStyling();
+        setTangramStyling();
         initGeometry();
     } else {
         m_tangramMap->markerRemove(m_markerId);
@@ -150,22 +110,19 @@ QTangramMap *QTangramGeometry::map()
     return m_map;
 }
 
-void QTangramGeometry::setStyling()
+void QTangramGeometry::setTangramStyling()
 {
     if (m_markerId == -1)
         return;
 
-    QVariantMap allStylings = m_properties->stylings();
-    QVariantMap extraStylings = m_properties->extraStyling();
-    for (const auto &key : extraStylings.keys())
-        allStylings[key] = extraStylings[key];
+    QVariantMap allStylings = m_defaultStyling;
+    for (const auto &key : m_styling.keys())
+        allStylings[key] = m_styling[key];
 
     auto obj = QJsonObject::fromVariantMap(allStylings);
     QJsonDocument doc(obj);
     QByteArray stylings = doc.toJson(QJsonDocument::Compact);
     m_tangramMap->markerSetStylingFromString(m_markerId, stylings.toStdString().c_str());
-    // workaround: if styling of marker changes, the marker may not be shown
-    m_tangramMap->handlePanGesture(0, 0, 0, 0);
 }
 
 void QTangramGeometry::initGeometry()
@@ -184,8 +141,8 @@ void QTangramGeometry::setClickable(bool clickable)
     emit clickableChanged();
 
     if (interactive != isInteractive()) {
-        m_properties->setStyling(QStringLiteral("interactive"),
-                                 QVariant::fromValue(isInteractive()));
+        m_defaultStyling["interactive"] = isInteractive();
+        setTangramStyling();
     }
 }
 

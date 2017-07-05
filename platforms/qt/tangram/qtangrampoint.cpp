@@ -7,70 +7,13 @@
 #include "qtangrammap.h"
 #include "tangram.h"
 
-QTangramPointProperties::QTangramPointProperties(QObject *parent)
-    : QTangramGeometryProperties(parent),
-      m_size(),
-      m_color()
-{
-    setSize(QVariant::fromValue(QStringLiteral("32px")));
-    setStyle("points");
-}
-
-void QTangramPointProperties::setColor(const QVariant &color)
-{
-    if (color == m_color)
-        return;
-    m_color = color;
-    setStyling(QStringLiteral("color"), color);
-}
-
-QVariant QTangramPointProperties::color() const
-{
-    return m_color;
-}
-
-void QTangramPointProperties::setSize(const QVariant &size)
-{
-    if (size == m_size)
-        return;
-    m_size = size;
-    setStyling(QStringLiteral("size"), size);
-}
-
-QVariant QTangramPointProperties::size() const
-{
-    return m_size;
-}
-
-void QTangramPointProperties::setRotation(const qreal rotation)
-{
-    qreal degrees = qRadiansToDegrees(rotation);
-    if (qAbs(degrees - m_rotation) < 1e-6)
-        return;
-
-    m_rotation = degrees;
-    setStyling(QStringLiteral("angle"), QVariant::fromValue(m_rotation));
-}
-
-qreal QTangramPointProperties::rotation() const
-{
-    return qDegreesToRadians(m_rotation);
-}
-
-void QTangramPointProperties::updateProperty(QString key)
-{
-    if (key == QStringLiteral("color")) {
-        emit colorChanged();
-    } else if (key == QStringLiteral("size")) {
-        emit sizeChanged();
-    }
-}
-
 QTangramPoint::QTangramPoint(QObject *parent)
-    : QTangramGeometry(parent, new QTangramPointProperties(parent)),
+    : QTangramGeometry(parent),
       m_coordinate(),
       m_draggable(false)
 {
+    m_defaultStyling["size"] = "32px";
+    m_defaultStyling["style"] = "points";
 }
 
 QTangramPoint::~QTangramPoint()
@@ -94,13 +37,6 @@ void QTangramPoint::setCoordinate(const QGeoCoordinate &coordinate)
 QGeoCoordinate QTangramPoint::coordinate() const
 {
     return m_coordinate;
-}
-
-
-
-QTangramPointProperties *QTangramPoint::visual()
-{
-    return qobject_cast<QTangramPointProperties *>(m_properties);
 }
 
 void QTangramPoint::initGeometry()
@@ -140,8 +76,8 @@ void QTangramPoint::setDraggable(bool draggable)
     emit draggableChanged();
 
     if (interactive != isInteractive()) {
-        m_properties->setStyling(QStringLiteral("interactive"),
-                                 QVariant::fromValue(isInteractive()));
+        m_defaultStyling["interactive"] = isInteractive();
+        setTangramStyling();
     }
 }
 

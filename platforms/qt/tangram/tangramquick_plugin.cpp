@@ -12,10 +12,8 @@ void TangramquickPlugin::registerTypes(const char *uri)
     qmlRegisterType<QDeclarativeTangramMap>(uri, 1, 0, "TangramMap");
     qmlRegisterType<QTangramGestureArea>(uri, 1, 0, "TangramMapGestureArea");
     qmlRegisterType<QTangramPolyline>(uri, 1, 0, "TangramPolyline");
-    qmlRegisterType<QTangramPolylineProperties>(uri, 1, 0, "TangramPolylineProperties");
     qmlRegisterType<QTangramGeometry>(uri, 1, 0, "TangramGeometry");
     qmlRegisterType<QTangramPoint>(uri, 1, 0, "TangramPoint");
-    qmlRegisterType<QTangramPointProperties>(uri, 1, 0, "TangramPointProperties");
 }
 
 

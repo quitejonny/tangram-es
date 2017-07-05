@@ -4,8 +4,8 @@
 #include <QObject>
 #include <QMap>
 #include <QVariant>
-#include <QJSValue>
 #include <QGeoCoordinate>
+#include <QColor>
 
 namespace Tangram {
 class Map;
@@ -13,42 +13,15 @@ class Map;
 
 class QTangramMap;
 
-class QTangramGeometryProperties : public QObject
-{
-    Q_OBJECT
-    Q_PROPERTY(QString style READ style WRITE setStyle NOTIFY styleChanged)
-    Q_PROPERTY(QVariantMap extraStyling READ extraStyling WRITE setExtraStyling NOTIFY extraStylingChanged)
-public:
-    explicit QTangramGeometryProperties(QObject *parent =  0);
-
-    void setStyle(QString style);
-    void setExtraStyling(QVariantMap styling);
-    QVariantMap extraStyling();
-    QString style();
-
-    Q_INVOKABLE void setStyling(QString key, QVariant value);
-    Q_INVOKABLE QVariantMap stylings();
-
-Q_SIGNALS:
-    void stylingChanged();
-    void extraStylingChanged();
-    void styleChanged();
-
-protected:
-    virtual void updateProperty(QString key);
-    QVariantMap m_stylings;
-    QVariantMap m_extraStyling;
-};
-
-
 class QTangramGeometry : public QObject
 {
     Q_OBJECT
     Q_PROPERTY(bool visible READ visible WRITE setVisible NOTIFY visibleChanged)
     Q_PROPERTY(int drawOrder READ drawOrder WRITE setDrawOrder NOTIFY drawOrderChanged)
     Q_PROPERTY(bool clickable READ clickable WRITE setClickable NOTIFY clickableChanged)
+    Q_PROPERTY(QVariantMap styling READ styling WRITE setStyling NOTIFY stylingChanged)
 public:
-    explicit QTangramGeometry(QObject *parent = 0, QTangramGeometryProperties *properties = 0);
+    explicit QTangramGeometry(QObject *parent = 0);
     ~QTangramGeometry();
 
     virtual void setMap(QTangramMap *map);
@@ -63,13 +36,19 @@ public:
     void setClickable(bool clickable);
     bool clickable();
 
+    void setStyling(QVariantMap styling);
+    QVariantMap styling();
+
     int markerId();
+
+    Q_INVOKABLE QString colorToHex(const QColor color) const;
 
 signals:
     void visibleChanged(bool visible);
     void drawOrderChanged(int drawOrder);
     void clickableChanged();
     void clicked(QGeoCoordinate coordinate);
+    void stylingChanged();
 
 public slots:
 
@@ -79,15 +58,16 @@ protected:
     int m_markerId;
     bool m_clickable;
     Tangram::Map *m_tangramMap;
-    QTangramGeometryProperties *m_properties;
     QTangramMap *m_map;
+    QVariantMap m_defaultStyling;
 
 protected slots:
-    virtual void setStyling();
+    virtual void setTangramStyling();
 
 private:
     bool m_visible;
     int m_drawOrder;
+    QVariantMap m_styling;
 };
 
 #endif // QTANGRAMGEOMETRY_H

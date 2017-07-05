@@ -8,41 +8,11 @@
 class QJSValue;
 class QGeoCoordinate;
 
-class QTangramPolylineProperties : public QTangramGeometryProperties
-{
-    Q_OBJECT
-
-    Q_PROPERTY(qreal width READ width WRITE setWidth NOTIFY widthChanged)
-    Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged)
-
-public:
-    explicit QTangramPolylineProperties(QObject *parent = 0);
-
-    QColor color() const;
-    void setColor(const QColor &color);
-
-    qreal width() const;
-    void setWidth(qreal width);
-
-Q_SIGNALS:
-    void widthChanged(qreal width);
-    void colorChanged(const QColor &color);
-
-protected:
-    virtual void updateProperty(QString key);
-
-private:
-    qreal m_width;
-    QColor m_color;
-};
-
-
 class QTangramPolyline : public QTangramGeometry
 {
     Q_OBJECT
 
     Q_PROPERTY(QJSValue path READ path WRITE setPath NOTIFY pathChanged)
-    Q_PROPERTY(QTangramPolylineProperties *line READ line CONSTANT)
 
 public:
     explicit QTangramPolyline(QObject *parent = 0);
@@ -52,8 +22,6 @@ public:
 
     QJSValue path() const;
     virtual void setPath(const QJSValue &value);
-
-    QTangramPolylineProperties* line();
 
 Q_SIGNALS:
     void pathChanged();

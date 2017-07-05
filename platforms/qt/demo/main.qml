@@ -19,7 +19,6 @@ Window {
         zoomLevel: 16
         center: centerCoordinate
         tilt: 0
-        continuousRendering: true
 
         TangramPolyline {
             id: line
@@ -27,18 +26,20 @@ Window {
                 centerCoordinate,
                 QtPositioning.coordinate(centerCoordinate.latitude + 0.07, centerCoordinate.longitude)
             ]
-            line.color: "#50FF0000"
-            line.width: 5
-            line.style: "heightglowline"
+            styling: {
+                "color": "#50FF0000",
+                width: 5,
+                style: "heightglowline"
+            }
         }
 
         TangramPoint {
             id: point
             coordinate: centerCoordinate
-            visual.color: "#88ffffff"
-            //visual.style: "icons"
-            visual.extraStyling: {
-                "size": ["60", "60"],
+            styling: {
+                "size": ["60px", "60px"],
+                color: "#88ffffff",
+                //style: "icons",
                 collide: false
             }
 
@@ -53,10 +54,10 @@ Window {
         TangramPoint {
             id: secondPoint
             coordinate: centerCoordinate
-            visual.color: "#00ffff"
-            //visual.style: "icons"
-            visual.extraStyling: {
+            styling: {
                 "size": "20px",
+                color: "#00ffff",
+                //style: "icons",
                 collide: false
             }
 
