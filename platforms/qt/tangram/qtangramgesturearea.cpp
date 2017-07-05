@@ -493,6 +493,7 @@ void QTangramGestureArea::touchPointStateMachine()
     // Transitions:
     switch (m_touchPointState) {
     case touchPoints0:
+        m_map->tangramObject()->handlePanGesture(0, 0, 0, 0);
         if (m_allPoints.count() == 1) {
             clearTouchData();
             startOneTouchPoint();
@@ -892,22 +893,16 @@ bool QTangramGestureArea::canStartPinch()
 void QTangramGestureArea::startPinch()
 {
     m_pinch.m_startDist = m_distanceBetweenTouchPoints;
-    m_pinch.m_zoom.m_previous = m_map->mapController()->zoom();
     m_pinch.m_lastAngle = m_twoTouchAngle;
     m_distanceBetweenTouchPointsLast = m_distanceBetweenTouchPoints;
 
     m_pinch.m_lastPoint1 = mapFromScene(m_allPoints.at(0).scenePos());
     m_pinch.m_lastPoint2 = mapFromScene(m_allPoints.at(1).scenePos());
-
-    m_pinch.m_zoom.m_start = m_map->mapController()->zoom();
 }
 
 void QTangramGestureArea::updatePinch()
 {
-    // Calculate the new zoom level if we have distance ( >= 2 touchpoints), otherwise stick with old.
-    //qreal newZoomLevel = m_pinch.m_zoom.m_previous;
-
-    qreal scale = 1 + 0.005*(m_distanceBetweenTouchPoints - m_distanceBetweenTouchPointsLast);
+    qreal scale = m_distanceBetweenTouchPoints / m_distanceBetweenTouchPointsLast;
     m_map->tangramObject()->handlePinchGesture(m_touchPointsCentroid.x(), m_touchPointsCentroid.y(), scale, 0.f);
 
     m_pinch.m_event.setCenter(mapFromScene(m_touchPointsCentroid));
@@ -925,8 +920,7 @@ void QTangramGestureArea::updatePinch()
 
     if (m_acceptedGestures & PinchGesture) {
         m_distanceBetweenTouchPointsLast = m_distanceBetweenTouchPoints;
-        m_pinch.m_zoom.m_previous = m_map->mapController()->zoom();
-        emit m_map->mapController()->zoomChanged(m_pinch.m_zoom.m_previous);
+        emit m_map->mapController()->zoomChanged(m_map->mapController()->zoom());
     }
 }
 
@@ -959,16 +953,11 @@ void QTangramGestureArea::panStateMachine()
         break;
     case panActive:
         if (m_allPoints.count() == 0) {
-            setFlickState(tryStartFlick() ? flickTried : flickInactive);
+            tryStartFlick();
+            setFlickState(flickInactive);
             if (m_pinchState == pinchInactive && m_rotationState == rotationInactive && m_tiltState == tiltInactive)
                 m_declarativeMap->setKeepMouseGrab(m_preventStealing);
             emit panFinished();
-        }
-        break;
-    case flickTried:
-        if (m_allPoints.count() > 0) { // re touched before movement ended
-            m_declarativeMap->setKeepMouseGrab(true);
-            setFlickState(panActive);
         }
         break;
     }
@@ -985,8 +974,6 @@ void QTangramGestureArea::panStateMachine()
         // this ensures 'panStarted' occurs after the pan has actually started
         if (lastState != panActive)
             emit panStarted();
-        break;
-    case flickTried:
         break;
     }
 }
@@ -1014,14 +1001,13 @@ void QTangramGestureArea::updatePan()
     m_touchPointsCentroidLast = m_touchPointsCentroid;
 }
 
-bool QTangramGestureArea::tryStartFlick()
+void QTangramGestureArea::tryStartFlick()
 {
     if ((m_acceptedGestures & FlickGesture) == 0)
-        return false;
+        return;
 
     m_map->tangramObject()->handleFlingGesture(m_lastPos.x(), m_lastPos.y(),
                                                m_flickVector.x(), m_flickVector.y());
-    return true;
 }
 
 void QTangramGestureArea::stopPan()

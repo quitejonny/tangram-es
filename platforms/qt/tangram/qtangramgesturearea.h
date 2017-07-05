@@ -180,7 +180,7 @@ private:
     void panStateMachine();
     bool canStartPan();
     void updatePan();
-    bool tryStartFlick();
+    void tryStartFlick();
 
     void dragStateMachine();
     bool canStartDrag();
@@ -221,12 +221,6 @@ private:
         bool m_pinchEnabled;
         bool m_rotationEnabled;
         bool m_tiltEnabled;
-        struct Zoom
-        {
-            Zoom() : m_start(0.0), m_previous(0.0) {}
-            qreal m_start;
-            qreal m_previous;
-        } m_zoom;
 
         struct Rotation
         {
@@ -321,8 +315,7 @@ private:
     enum FlickState
     {
         flickInactive,
-        panActive,
-        flickTried
+        panActive
     } m_flickState;
 
     enum DragState
