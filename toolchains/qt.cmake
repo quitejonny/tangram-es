@@ -6,11 +6,11 @@ if(EXISTS "/etc/debian_version")
 RESULT_VARIABLE _INCLUDED_MULTIARCH_TOOLCHAIN_FILE)
 endif()
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -fPIC")
-
 # global compile options
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++1y -fPIC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-gnu-zero-variadic-macro-arguments")
@@ -36,12 +36,6 @@ check_unsupported_compiler_version()
 
 # compile definitions (adds -DPLATFORM_QT)
 set(CORE_COMPILE_DEFS PLATFORM_QT)
-
-# if (USE_EXTERNAL_LIBS)
-#   include(${EXTERNAL_LIBS_DIR}/core-dependencies.cmake)
-# else()
-#   add_subdirectory(${PROJECT_SOURCE_DIR}/external)
-# endif()
 
 # load core library
 add_subdirectory(${PROJECT_SOURCE_DIR}/core)
