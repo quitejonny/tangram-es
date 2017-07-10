@@ -363,7 +363,7 @@ void QTangramGestureArea::handleTouchEvent(QTouchEvent *event)
         if (point.state() != Qt::TouchPointReleased)
             m_touchPoints << point;
     }
-    if (event->touchPoints().count() >= 2)
+    if (m_touchPoints.count() >= 2)
         event->accept();
     else
         event->ignore();
