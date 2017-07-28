@@ -6,10 +6,10 @@
 #include "labels/textLabel.h"
 #include "labels/textLabels.h"
 #include "log.h"
+#include "map.h"
 #include "marker/marker.h"
 #include "selection/featureSelection.h"
 #include "scene/drawRule.h"
-#include "tangram.h"
 #include "tile/tile.h"
 #include "util/geom.h"
 #include "util/mapProjection.h"
@@ -171,7 +171,7 @@ bool getTextSource(const StyleParamKey _key, const DrawRule& _rule, const Proper
     auto& textSource = _rule.findParameter(_key);
     if (textSource.value.is<StyleParam::TextSource>()) {
         for (auto& key : textSource.value.get<StyleParam::TextSource>().keys) {
-            _text = _props.getString(key);
+            _text = _props.getAsString(key);
             if (!_text.empty()) { break; }
         }
     } else if (textSource.value.is<std::string>()) {
@@ -589,6 +589,8 @@ TextStyle::Parameters TextStyleBuilder::applyRule(const DrawRule& _rule,
     _rule.get(StyleParamKey::transition_hide_time, p.labelOptions.hideTransition.time);
     _rule.get(StyleParamKey::transition_selected_time, p.labelOptions.selectTransition.time);
     _rule.get(StyleParamKey::transition_show_time, p.labelOptions.showTransition.time);
+
+    _rule.get(StyleParamKey::text_max_lines, p.maxLines);
 
     uint32_t priority = 0;
     size_t repeatGroupHash = 0;
