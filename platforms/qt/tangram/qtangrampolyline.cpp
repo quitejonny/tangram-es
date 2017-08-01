@@ -1,6 +1,6 @@
 #include "qtangrampolyline.h"
 #include "qtangrammap.h"
-#include "tangram.h"
+#include "map.h"
 #include "util/types.h"
 #include <QJSValue>
 #include <QGeoCoordinate>

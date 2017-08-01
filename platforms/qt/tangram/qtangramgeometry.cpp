@@ -1,7 +1,7 @@
 #include "qtangramgeometry.h"
 #include "qtangrampoint.h"
 #include "qtangrammap.h"
-#include "tangram.h"
+#include "map.h"
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJSValue>

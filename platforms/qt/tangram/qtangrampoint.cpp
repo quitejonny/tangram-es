@@ -5,7 +5,7 @@
 #include <QImage>
 #include "util/types.h"
 #include "qtangrammap.h"
-#include "tangram.h"
+#include "map.h"
 
 QTangramPoint::QTangramPoint(QObject *parent)
     : QTangramGeometry(parent),

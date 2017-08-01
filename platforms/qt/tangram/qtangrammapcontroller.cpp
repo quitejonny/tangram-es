@@ -1,6 +1,6 @@
 #include "qtangrammapcontroller.h"
 #include "qtangrammap.h"
-#include "tangram.h"
+#include "map.h"
 #include <QDebug>
 
 QTangramMapController::QTangramMapController(QTangramMap *map)

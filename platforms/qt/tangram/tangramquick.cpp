@@ -1,7 +1,7 @@
 #include "tangramquick.h"
 #include <QtGui/QOpenGLFramebufferObject>
 
-#include <tangram.h>
+#include <map.h>
 #include <QOpenGLShaderProgram>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>

@@ -1,7 +1,7 @@
 #include "qtangramgesturearea.h"
 #include "qtangrammapcontroller.h"
 #include "qtangrammap.h"
-#include <tangram.h>
+#include <map.h>
 #include "tangramquick.h"
 #include "qtangrampoint.h"
 

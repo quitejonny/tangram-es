@@ -1,6 +1,6 @@
 #include "qtangrammap.h"
 #include "qtangrammapcontroller.h"
-#include "tangram.h"
+#include "map.h"
 #include "platform_qt.h"
 #include <QGeoCoordinate>
 #include <QPointF>
