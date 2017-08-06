@@ -52,7 +52,8 @@ SOURCES += \
     qtangrampolyline.cpp \
     qtangrampoint.cpp \
     contentdownloader.cpp \
-    qtangrammarkermanager.cpp
+    qtangrammarkermanager.cpp \
+    tangramquickrenderer.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
@@ -64,7 +65,8 @@ HEADERS += \
     qtangrampolyline.h \
     qtangrampoint.h \
     contentdownloader.h \
-    qtangrammarkermanager.h
+    qtangrammarkermanager.h \
+    tangramquickrenderer.h
 
 DISTFILES = qmldir
 

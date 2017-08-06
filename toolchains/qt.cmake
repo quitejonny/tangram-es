@@ -65,6 +65,7 @@ add_library(${PLUGIN_NAME} SHARED
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/platform_gl.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/contentdownloader.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrammarkermanager.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/tangramquickrenderer.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/platform_qt.cpp)
 
 target_link_libraries(${PLUGIN_NAME}
