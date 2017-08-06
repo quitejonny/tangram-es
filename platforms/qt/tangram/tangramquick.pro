@@ -48,12 +48,11 @@ SOURCES += \
     platform_qt.cpp \
     platform_gl.cpp \
     qtangramgesturearea.cpp \
-    qtangrammap.cpp \
-    qtangrammapcontroller.cpp \
     qtangramgeometry.cpp \
     qtangrampolyline.cpp \
     qtangrampoint.cpp \
-    contentdownloader.cpp
+    contentdownloader.cpp \
+    qtangrammarkermanager.cpp
 
 HEADERS += \
     tangramquick_plugin.h \
@@ -61,12 +60,11 @@ HEADERS += \
     platform_qt.h \
     platform_gl.h \
     qtangramgesturearea.h \
-    qtangrammap.h \
-    qtangrammapcontroller.h \
     qtangramgeometry.h \
     qtangrampolyline.h \
     qtangrampoint.h \
-    contentdownloader.h
+    contentdownloader.h \
+    qtangrammarkermanager.h
 
 DISTFILES = qmldir
 

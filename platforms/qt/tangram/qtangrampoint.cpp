@@ -2,9 +2,8 @@
 #include <QDebug>
 #include <QVariant>
 #include <QtMath>
-#include <QImage>
 #include "util/types.h"
-#include "qtangrammap.h"
+#include "tangramquick.h"
 #include "map.h"
 
 QTangramPoint::QTangramPoint(QObject *parent)
@@ -26,12 +25,9 @@ void QTangramPoint::setCoordinate(const QGeoCoordinate &coordinate)
         return;
 
     m_coordinate = coordinate;
-    emit coordinateChanged();
-    if (m_markerId == -1)
-        return;
+    addSyncState(PointNeedsSync);
 
-    auto lngLat = Tangram::LngLat(coordinate.longitude(), coordinate.latitude());
-    m_tangramMap->markerSetPoint(m_markerId, lngLat);
+    emit coordinateChanged();
 }
 
 QGeoCoordinate QTangramPoint::coordinate() const
@@ -39,24 +35,18 @@ QGeoCoordinate QTangramPoint::coordinate() const
     return m_coordinate;
 }
 
-void QTangramPoint::initGeometry()
+void QTangramPoint::setMap(QDeclarativeTangramMap *map)
 {
-    if (!m_coordinate.isValid())
-        return;
+    if (map && !m_imageSource.isEmpty())
+        addSyncState(BitmapNeedsSync);
 
-    auto lngLat = Tangram::LngLat(m_coordinate.longitude(), m_coordinate.latitude());
-    m_tangramMap->markerSetPoint(m_markerId, lngLat);
-}
+    if (map && m_draggable)
+        addSyncState(DraggableNeedsSync);
 
-void QTangramPoint::setMap(QTangramMap *map)
-{
-    if (!m_map && map && m_draggable)
-        map->setDraggable(this, m_draggable);
-    else if (m_map && !map)
-        m_map->setDraggable(this, false);
+    if (map && m_coordinate.isValid())
+        addSyncState(PointNeedsSync);
 
     QTangramGeometry::setMap(map);
-    setImageData();
 }
 
 bool QTangramPoint::isInteractive()
@@ -71,8 +61,7 @@ void QTangramPoint::setDraggable(bool draggable)
 
     bool interactive = isInteractive();
     m_draggable = draggable;
-    if (m_markerId != -1)
-        m_map->setDraggable(this, m_draggable);
+    addSyncState(DraggableNeedsSync);
     emit draggableChanged();
 
     if (interactive != isInteractive()) {
@@ -92,29 +81,12 @@ void QTangramPoint::setImageSource(const QString &imageSource)
         return;
 
     m_imageSource = imageSource;
+    addSyncState(BitmapNeedsSync);
+
     emit imageSourceChanged();
-    setImageData();
 }
 
 QString QTangramPoint::imageSource() const
 {
     return m_imageSource;
-}
-
-void QTangramPoint::setImageData()
-{
-    if (m_markerId == -1)
-        return;
-
-    QString source = m_imageSource.startsWith("qrc:") ? m_imageSource.remove(0, 3) : m_imageSource;
-    if (source.isEmpty())
-            return;
-
-    QImage image(source);
-    if (image.isNull())
-        return;
-
-    image = image.convertToFormat(QImage::Format_RGBA8888).mirrored();
-    const uint *data = reinterpret_cast<const uint*>(image.constBits());
-    m_tangramMap->markerSetBitmap(m_markerId, image.width(), image.height(), data);
 }

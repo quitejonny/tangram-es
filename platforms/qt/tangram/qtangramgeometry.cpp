@@ -1,6 +1,6 @@
 #include "qtangramgeometry.h"
 #include "qtangrampoint.h"
-#include "qtangrammap.h"
+#include "tangramquick.h"
 #include "map.h"
 #include <QJsonObject>
 #include <QJsonDocument>
@@ -11,7 +11,7 @@ QTangramGeometry::QTangramGeometry(QObject *parent)
     : QObject(parent),
       m_markerId(-1),
       m_clickable(false),
-      m_map(0),
+      m_map(),
       m_visible(true),
       m_drawOrder(-1),
       m_styling()
@@ -21,8 +21,8 @@ QTangramGeometry::QTangramGeometry(QObject *parent)
 
 QTangramGeometry::~QTangramGeometry()
 {
-    if (m_tangramMap)
-        m_tangramMap->markerRemove(m_markerId);
+    if (m_map)
+        m_map->removeMapItem(this);
 }
 
 QString QTangramGeometry::colorToHex(const QColor color) const
@@ -47,9 +47,7 @@ void QTangramGeometry::setVisible(bool visible)
         return;
 
     m_visible = visible;
-    if (m_map) {
-        m_tangramMap->markerSetVisible(m_markerId, m_visible);
-    }
+    addSyncState(VisibleNeedsSync);
     emit visibleChanged(visible);
 }
 
@@ -64,9 +62,7 @@ void QTangramGeometry::setDrawOrder(int drawOrder)
         return;
 
     m_drawOrder = drawOrder;
-    if (m_map) {
-        m_tangramMap->markerSetDrawOrder(m_markerId, m_drawOrder);
-    }
+    addSyncState(DrawOrderNeedsSync);
     emit drawOrderChanged(drawOrder);
 }
 
@@ -75,29 +71,23 @@ int QTangramGeometry::drawOrder()
     return m_drawOrder;
 }
 
-void QTangramGeometry::setMap(QTangramMap *map)
+void QTangramGeometry::setMap(QDeclarativeTangramMap *map)
 {
-    if (map == m_map)
+    if (map == m_map.data())
         return;
 
-    if (!map && m_map) {
-        m_map->setClickable(this, false);
+    addSyncState(MarkerIdNeedsSync);
+
+    if (map) {
+        if (m_drawOrder > 0)
+            addSyncState(DrawOrderNeedsSync);
+        addSyncState(VisibleNeedsSync | ClickableNeedsSync | StylingNeedsSync);
+        map->itemchangedData(this);
+    } else if (m_map) {
+        m_map->itemchangedData(this);
     }
 
-    m_map = map;
-    if (m_map) {
-        m_map->setClickable(this, m_clickable);
-        m_tangramMap = m_map->tangramObject();
-        m_markerId = m_tangramMap->markerAdd();
-        m_tangramMap->markerSetVisible(m_markerId, m_visible);
-        m_tangramMap->markerSetDrawOrder(m_markerId, m_visible);
-        setTangramStyling();
-        initGeometry();
-    } else {
-        m_tangramMap->markerRemove(m_markerId);
-        m_tangramMap = 0;
-        m_markerId = -1;
-    }
+    m_map = QPointer<QDeclarativeTangramMap>(map);
 }
 
 bool QTangramGeometry::isInteractive()
@@ -105,28 +95,29 @@ bool QTangramGeometry::isInteractive()
     return m_clickable;
 }
 
-QTangramMap *QTangramGeometry::map()
+void QTangramGeometry::addSyncState(int state)
 {
-    return m_map;
+    m_syncState |= state;
+
+    if (m_map)
+        m_map->itemchangedData(this);
+}
+
+QDeclarativeTangramMap *QTangramGeometry::map()
+{
+    return m_map.data();
 }
 
 void QTangramGeometry::setTangramStyling()
 {
-    if (m_markerId == -1)
-        return;
-
     QVariantMap allStylings = m_defaultStyling;
     for (const auto &key : m_styling.keys())
         allStylings[key] = m_styling[key];
 
     auto obj = QJsonObject::fromVariantMap(allStylings);
     QJsonDocument doc(obj);
-    QByteArray stylings = doc.toJson(QJsonDocument::Compact);
-    m_tangramMap->markerSetStylingFromString(m_markerId, stylings.toStdString().c_str());
-}
-
-void QTangramGeometry::initGeometry()
-{
+    m_allStylings = doc.toJson(QJsonDocument::Compact);
+    addSyncState(StylingNeedsSync);
 }
 
 void QTangramGeometry::setClickable(bool clickable)
@@ -136,8 +127,7 @@ void QTangramGeometry::setClickable(bool clickable)
 
     bool interactive = isInteractive();
     m_clickable = clickable;
-    if (m_markerId != -1)
-        m_map->setClickable(this, m_clickable);
+    addSyncState(ClickableNeedsSync);
     emit clickableChanged();
 
     if (interactive != isInteractive()) {

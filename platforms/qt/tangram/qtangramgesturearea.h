@@ -114,13 +114,11 @@ public:
     void handleMouseUngrabEvent();
     void handleTouchUngrabEvent();
 
-    void onClickedFeatures(const Tangram::MarkerPickResult *result);
-    void onDragFeatures(const Tangram::MarkerPickResult *result);
-
-    void setMap(QPointer<QTangramMap> map);
-
     bool preventStealing() const;
     void setPreventStealing(bool prevent);
+
+public slots:
+    void startDrag();
 
 Q_SIGNALS:
     void panActiveChanged();
@@ -144,6 +142,7 @@ Q_SIGNALS:
     void tiltUpdated(QTangramMapPinchEvent *pinch);
     void tiltFinished(QTangramMapPinchEvent *pinch);
     void preventStealingChanged();
+
 private:
     void update();
 
@@ -184,11 +183,6 @@ private:
 
     void dragStateMachine();
     bool canStartDrag();
-    void startDrag();
-    void updateDrag();
-    void endDrag();
-
-    void tryToClick();
 
     bool pinchEnabled() const;
     void setPinchEnabled(bool enabled);
@@ -226,18 +220,20 @@ private:
         {
             Rotation() : m_previousTouchAngle(0.0) {}
             qreal m_previousTouchAngle; // needed for detecting crossing +- 180 in a safer way
+            qreal m_angle;
         } m_rotation;
 
         struct Tilt
         {
             Tilt() {}
-            QPointF m_lastTouchCentroid;
+            qreal m_verticalDisplacement;
         } m_tilt;
 
         QPointF m_lastPoint1;
         QPointF m_lastPoint2;
         qreal m_startDist;
         qreal m_lastAngle;
+        qreal m_scale;
      } m_pinch;
 
     AcceptedGestures m_acceptedGestures;
@@ -248,20 +244,10 @@ private:
 
         bool m_flickEnabled;
         bool m_panEnabled;
+        QVector2D m_vector;
     } m_flick;
 
-    struct Drag
-    {
-        Drag() : m_id(0), m_latitudeDistance(0), m_longitudeDistance(0) {}
-        QTangramPoint* m_item;
-        int m_id;
-        qreal m_latitudeDistance;
-        qreal m_longitudeDistance;
-
-    } m_drag;
-
     // these are calculated regardless of gesture or number of touch points
-    QVector2D m_flickVector;
     QElapsedTimer m_lastPosTime;
     QPointF m_lastPos;
     QVector<QTouchEvent::TouchPoint> m_allPoints;
@@ -325,12 +311,30 @@ private:
         dragActive
     } m_dragState;
 
+    enum SyncState {
+        NothingNeedsSync = 0,
+        PanNeedsSync = 1 << 0,
+        FlingNeedsSync = 1 << 1,
+        PinchNeedsSync = 1 << 2,
+        RotateNeedsSync = 1 << 3,
+        ShoveNeedsSync = 1 << 4,
+        TryClickNeedsSync = 1 << 5,
+        TryDragNeedsSync = 1 << 6,
+        DragNeedsSync = 1 << 7,
+        EndDragNeedsSync = 1 << 8,
+        StopPointNeedsSync = 1 << 9
+    };
+
+    int m_syncState = NothingNeedsSync;
+
     inline void setTouchPointState(const TouchPointState state);
     inline void setFlickState(const FlickState state);
     inline void setTiltState(const TiltState state);
     inline void setRotationState(const RotationState state);
     inline void setPinchState(const PinchState state);
     inline void setDragState(const DragState state);
+
+    friend class TangramQuickRenderer;
 };
 
 QML_DECLARE_TYPE(QTangramGestureArea)

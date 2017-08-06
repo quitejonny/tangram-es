@@ -6,12 +6,12 @@
 #include <QVariant>
 #include <QGeoCoordinate>
 #include <QColor>
+#include <QPointer>
+#include "tangramquick.h"
 
 namespace Tangram {
 class Map;
 }
-
-class QTangramMap;
 
 class QTangramGeometry : public QObject
 {
@@ -24,8 +24,8 @@ public:
     explicit QTangramGeometry(QObject *parent = 0);
     ~QTangramGeometry();
 
-    virtual void setMap(QTangramMap *map);
-    QTangramMap *map();
+    virtual void setMap(QDeclarativeTangramMap *map);
+    QDeclarativeTangramMap *map();
 
     void setVisible(bool visible);
     bool visible();
@@ -53,13 +53,28 @@ signals:
 public slots:
 
 protected:
-    virtual void initGeometry();
     virtual bool isInteractive();
+    void addSyncState(int state);
     int m_markerId;
     bool m_clickable;
-    Tangram::Map *m_tangramMap;
-    QTangramMap *m_map;
+    QPointer<QDeclarativeTangramMap> m_map;
     QVariantMap m_defaultStyling;
+
+    enum SyncState {
+        NothingNeedsSync = 0,
+        StylingNeedsSync = 1 << 0,
+        BitmapNeedsSync = 1 << 1,
+        PointNeedsSync = 1 << 2,
+        PolylineNeedsSync = 1 << 3,
+        PolygonNeedsSync = 1 << 4,
+        VisibleNeedsSync = 1 << 5,
+        DrawOrderNeedsSync = 1 << 6,
+        MarkerIdNeedsSync = 1 << 7,
+        ClickableNeedsSync = 1 << 8,
+        DraggableNeedsSync = 1 << 9
+    };
+
+    int m_syncState = NothingNeedsSync;
 
 protected slots:
     virtual void setTangramStyling();
@@ -68,6 +83,10 @@ private:
     bool m_visible;
     int m_drawOrder;
     QVariantMap m_styling;
+    QByteArray m_allStylings;
+
+    friend class QTangramMarkerManager;
+    Q_DISABLE_COPY(QTangramGeometry)
 };
 
 #endif // QTANGRAMGEOMETRY_H

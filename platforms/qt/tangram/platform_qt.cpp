@@ -21,8 +21,9 @@
 #include <QCoreApplication>
 #include <QWindow>
 
-#include "tangramquick.h"
 #include "contentdownloader.h"
+
+#include <QObject>
 
 #define NUM_WORKERS 5
 
@@ -59,37 +60,33 @@ void setCurrentThreadPriority(int priority){
     //logMsg("set niceness: %d -> %d\n", p1, p2);
 }
 
-QtPlatform::QtPlatform()
+QtPlatform::QtPlatform(QObject *item)
+    : m_item(item),
+      m_downloader(nullptr)
 {
-
-}
-
-
-QtPlatform::QtPlatform(QDeclarativeTangramMap *quickItem)
-    : m_quickItem(quickItem),
-      m_downloader(new ContentDownloader(quickItem))
-{
-    m_downloader->setMaximumWorkers(NUM_WORKERS);
 }
 
 QtPlatform::~QtPlatform()
 {
-
 }
 
 void QtPlatform::requestRender() const
 {
-    QCoreApplication::postEvent(m_quickItem, new QEvent(TANGRAM_REQ_RENDER_EVENT_TYPE));
+    if (m_item)
+        QCoreApplication::postEvent(m_item, new QEvent(TANGRAM_REQ_RENDER_EVENT_TYPE));
 }
 
 void QtPlatform::setContinuousRendering(bool _isContinuous)
 {
-    m_quickItem->setContinuousRendering(_isContinuous);
+    if (_isContinuous == m_isContiuous)
+        return;
+
+    m_isContiuous = _isContinuous;
 }
 
 bool QtPlatform::isContinuousRendering() const
 {
-    return m_quickItem->continuousRendering();
+    return m_isContiuous;
 }
 
 bool QtPlatform::bytesFromFileSystem(const char* _path, std::function<char*(size_t)> _allocator) const
@@ -145,17 +142,33 @@ std::vector<char> QtPlatform::bytesFromFile(const char* _path) const {
 }
 
 bool QtPlatform::startUrlRequest(const std::string& _url, UrlCallback _callback) {
-    m_downloader->addTask(_url, _callback);
-
-    return true;
+    if (m_downloader) {
+        emit m_downloader->addTask(_url, _callback);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 void QtPlatform::cancelUrlRequest(const std::string& _url) {
-    m_downloader->cancelTask(_url);
+    if (m_downloader)
+        emit m_downloader->cancelTask(_url);
 }
 
 void QtPlatform::finishUrlRequests() {
-    m_downloader->finishTasks();
+    if (m_downloader)
+        emit m_downloader->finishTasks();
+}
+
+void QtPlatform::setDownloader(ContentDownloader *downloader)
+{
+    m_downloader = downloader;
+    m_downloader->setMaximumWorkers(NUM_WORKERS);
+}
+
+void QtPlatform::setItem(QObject *item)
+{
+    m_item = item;
 }
 
 std::vector<FontSourceHandle> QtPlatform::systemFontFallbacksHandle() const {

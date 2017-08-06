@@ -1,5 +1,4 @@
 #include "qtangrampolyline.h"
-#include "qtangrammap.h"
 #include "map.h"
 #include "util/types.h"
 #include <QJSValue>
@@ -8,6 +7,7 @@
 #include <QQmlContext>
 #include <QColor>
 #include <QDebug>
+#include "tangramquick.h"
 
 QTangramPolyline::QTangramPolyline(QObject *parent)
     : QTangramGeometry(parent)
@@ -24,7 +24,6 @@ QTangramPolyline::~QTangramPolyline()
 
 void QTangramPolyline::setPath(const QJSValue &value)
 {
-    qDebug() << Q_FUNC_INFO;
     if (!value.isArray())
         return;
 
@@ -92,19 +91,13 @@ QGeoCoordinate QTangramPolyline::parseCoordinate(const QJSValue &value, bool *ok
 
 void QTangramPolyline::setPathFromGeoList(const QList<QGeoCoordinate> &path)
 {
-    qDebug() << Q_FUNC_INFO;
     if (m_path == path)
         return;
 
     m_path = path;
     emit pathChanged();
-    if (m_markerId == -1)
-        return;
 
-    std::vector<Tangram::LngLat> coord;
-    for (int i = 0; i < m_path.size(); ++i)
-        coord.push_back(Tangram::LngLat(m_path.at(i).longitude(), m_path.at(i).latitude()));
-    m_tangramMap->markerSetPolyline(m_markerId, coord.data(), coord.size());
+    addSyncState(PolylineNeedsSync);
 }
 
 int QTangramPolyline::pathLength() const
@@ -112,14 +105,10 @@ int QTangramPolyline::pathLength() const
     return m_path.size();
 }
 
-void QTangramPolyline::initGeometry()
+void QTangramPolyline::setMap(QDeclarativeTangramMap *map)
 {
-    qDebug() << Q_FUNC_INFO << ", m_markerId:" << m_markerId;
-    if (m_path.isEmpty())
-        return;
+    if (map && !m_path.empty())
+        addSyncState(PolylineNeedsSync);
 
-    std::vector<Tangram::LngLat> coord;
-    for (int i = 0; i < m_path.size(); ++i)
-        coord.push_back(Tangram::LngLat(m_path.at(i).longitude(), m_path.at(i).latitude()));
-    m_tangramMap->markerSetPolyline(m_markerId, coord.data(), coord.size());
+    QTangramGeometry::setMap(map);
 }

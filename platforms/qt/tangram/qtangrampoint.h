@@ -26,7 +26,7 @@ public:
     void setImageSource(const QString &imageSource);
     QString imageSource() const;
 
-    void setMap(QTangramMap *map);
+    void setMap(QDeclarativeTangramMap *map);
 
 Q_SIGNALS:
     void visualChanged();
@@ -38,17 +38,14 @@ Q_SIGNALS:
 public slots:
 
 protected:
-    virtual void initGeometry();
     virtual bool isInteractive();
-
-private:
-    void setImageData();
 
 private:
     QGeoCoordinate m_coordinate;
     bool m_draggable;
     QString m_imageSource;
 
+    friend class QTangramMarkerManager;
 };
 
 #endif // QTANGRAMPOINT_H

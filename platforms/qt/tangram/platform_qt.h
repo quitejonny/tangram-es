@@ -4,13 +4,12 @@
 #include "platform.h"
 #include <QEvent>
 #include <QtGui/qopengl.h>
-#include "contentdownloader.h"
 
 
 #define TANGRAM_REQ_RENDER_EVENT_TYPE   (QEvent::Type)(QEvent::User + 1)
 
 class QObject;
-class QDeclarativeTangramMap;
+class ContentDownloader;
 class QOpenGLContext;
 
 namespace Tangram {
@@ -18,8 +17,7 @@ namespace Tangram {
 class QtPlatform : public Platform {
 
 public:
-    QtPlatform();
-    QtPlatform(QDeclarativeTangramMap *quickItem);
+    QtPlatform(QObject *item = 0);
     ~QtPlatform() override;
     void requestRender() const override;
 
@@ -35,12 +33,17 @@ public:
 
     std::vector<FontSourceHandle> systemFontFallbacksHandle() const override;
 
+    void setDownloader(ContentDownloader *downloader);
+
+    void setItem(QObject *item);
+
 protected:
     bool bytesFromFileSystem(const char* _path, std::function<char*(size_t)> _allocator) const;
 
 private:
-    QDeclarativeTangramMap *m_quickItem;
+    QObject *m_item;
     ContentDownloader *m_downloader;
+    bool m_isContiuous;
 
 };
 

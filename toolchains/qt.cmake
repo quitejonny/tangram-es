@@ -59,13 +59,12 @@ add_library(${PLUGIN_NAME} SHARED
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/tangramquick_plugin.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/tangramquick.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangramgesturearea.cpp
-  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrammap.cpp
-  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrammapcontroller.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangramgeometry.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrampolyline.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrampoint.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/platform_gl.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/contentdownloader.cpp
+  ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qtangrammarkermanager.cpp
   ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/platform_qt.cpp)
 
 target_link_libraries(${PLUGIN_NAME}

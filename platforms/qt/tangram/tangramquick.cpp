@@ -1,47 +1,34 @@
 #include "tangramquick.h"
 #include <QtGui/QOpenGLFramebufferObject>
 
-#include <map.h>
+#include "map.h"
 #include <QOpenGLShaderProgram>
 #include <QOpenGLContext>
 #include <QOpenGLFunctions>
 #include <QSGSimpleTextureNode>
 #include "platform_qt.h"
 #include <QDebug>
-#include "qtangrammap.h"
-#include "qtangrammapcontroller.h"
 #include "qtangramgesturearea.h"
 #include "qtangramgeometry.h"
+#include "qtangrampoint.h"
+#include "qtangrammarkermanager.h"
+#include "contentdownloader.h"
 
 
 QDeclarativeTangramMap::QDeclarativeTangramMap(QQuickItem *parent)
     : QQuickFramebufferObject(parent),
-      m_center(),
-      m_heading(0),
       m_zoomLevel(-1.0),
+      m_center(),
+      m_sceneUrl(),
+      m_heading(0),
       m_tilt(0),
       m_rotation(0),
       m_pixelScale(1),
-      m_continuousRendering(false),
-      m_map(NULL),
-      m_gestureArea(new QTangramGestureArea(this))
+      m_gestureArea(new QTangramGestureArea(this)),
+      m_downloader(new ContentDownloader(this))
 {
     setAcceptedMouseButtons(Qt::AllButtons);
-
-    auto platform = std::make_shared<Tangram::QtPlatform>(this);
-    m_map = new QTangramMap(platform, parent);
-    m_gestureArea->setMap(m_map);
-    connect(m_map, SIGNAL(sceneChanged()), this, SLOT(updateScene()));
-    connect(m_map->mapController(), SIGNAL(centerChanged(QGeoCoordinate)),
-            this, SIGNAL(centerChanged(QGeoCoordinate)));
-    connect(m_map->mapController(), SIGNAL(tiltChanged(qreal)),
-            this, SLOT(mapTiltChanged(qreal)));
-    connect(m_map->mapController(), SIGNAL(zoomChanged(qreal)),
-            this, SLOT(mapZoomLevelChanged(qreal)));
-    connect(m_map->mapController(), SIGNAL(rotationChanged(qreal)),
-            this, SLOT(mapRotationChanged(qreal)));
-    connect(m_map, SIGNAL(pixelScaleChanged(qreal)),
-            this, SLOT(mapPixelScaleChanged(qreal)));
+    connect(this, &QDeclarativeTangramMap::sceneChanged, this, &QDeclarativeTangramMap::updateScene);
 }
 
 QDeclarativeTangramMap::~QDeclarativeTangramMap()
@@ -68,61 +55,32 @@ void QDeclarativeTangramMap::updateScene()
 
     for (auto &item : m_mapItems) {
         item->setMap(0);
-        item->setMap(m_map);
+        item->setMap(this);
     }
 
     if (m_center.isValid())
-        m_map->mapController()->setCenter(m_center);
+        m_syncState |= CenterNeedsSync;
     if (m_zoomLevel != -1)
-        m_map->mapController()->setZoom(m_zoomLevel);
-    m_map->setPixelScale(m_pixelScale);
-    m_map->mapController()->setRotation(m_rotation);
-    m_map->mapController()->setTilt(m_tilt);
-}
-
-void QDeclarativeTangramMap::mapZoomLevelChanged(qreal zoom)
-{
-    if (zoom == m_zoomLevel)
-        return;
-    m_zoomLevel = zoom;
-    emit zoomLevelChanged(m_zoomLevel);
-}
-
-void QDeclarativeTangramMap::mapTiltChanged(qreal tilt)
-{
-    if (tilt == m_tilt)
-        return;
-    m_tilt = tilt;
-    emit tiltChanged(m_tilt);
-}
-
-void QDeclarativeTangramMap::mapRotationChanged(qreal rotation)
-{
-    if (rotation == m_rotation)
-        return;
-    m_rotation = rotation;
-    emit rotationChanged(m_rotation);
-}
-
-void QDeclarativeTangramMap::mapPixelScaleChanged(qreal pixelScale)
-{
-    if (pixelScale == m_pixelScale)
-        return;
-    m_pixelScale = pixelScale;
-    emit pixelScaleChanged(m_pixelScale);
+        m_syncState |= ZoomNeedsSync;
+    m_syncState |= PixelScaleNeedsSync | RotationNeedsSync | TiltNeedsSync;
+    update();
 }
 
 QQuickFramebufferObject::Renderer* QDeclarativeTangramMap::createRenderer() const
 {
-    return new TangramQuickRenderer(m_map);
+    return new TangramQuickRenderer();
 }
 
 void QDeclarativeTangramMap::setSceneConfiguration(const QUrl &scene)
 {
-    if (m_sceneUrl != scene) {
-        m_sceneUrl = scene;
-        emit sceneConfigurationChanged();
-    }
+    if (m_sceneUrl == scene)
+        return;
+
+    m_sceneUrl = scene;
+    m_syncState |= SceneConfigurationNeedsSync;
+    update();
+
+    emit sceneConfigurationChanged();
 }
 
 QUrl QDeclarativeTangramMap::sceneConfiguration() const
@@ -136,7 +94,10 @@ void QDeclarativeTangramMap::setCenter(const QGeoCoordinate &center)
         return;
 
     m_center = center;
-    m_map->mapController()->setCenter(m_center);
+    m_syncState |= CenterNeedsSync;
+    update();
+
+    emit centerChanged(m_center);
 }
 
 QGeoCoordinate QDeclarativeTangramMap::center() const
@@ -146,10 +107,14 @@ QGeoCoordinate QDeclarativeTangramMap::center() const
 
 void QDeclarativeTangramMap::setHeading(const qreal heading)
 {
-    if (m_heading != heading) {
-        m_heading = heading;
-        emit headingChanged();
-    }
+    if (m_heading == heading)
+        return;
+
+    m_heading = heading;
+    m_syncState |= HeadingNeedsSync;
+    update();
+
+    emit headingChanged();
 }
 
 qreal QDeclarativeTangramMap::heading() const
@@ -163,8 +128,10 @@ void QDeclarativeTangramMap::setZoomLevel(qreal zoomLevel)
         return;
 
     m_zoomLevel = zoomLevel;
-    m_map->mapController()->setZoom(zoomLevel);
-    emit zoomLevelChanged(zoomLevel);
+    m_syncState |= ZoomNeedsSync;
+    update();
+
+    emit zoomLevelChanged(m_zoomLevel);
 }
 
 qreal QDeclarativeTangramMap::zoomLevel() const
@@ -178,7 +145,10 @@ void QDeclarativeTangramMap::setTilt(const qreal tilt)
         return;
 
     m_tilt = tilt;
-    m_map->mapController()->setTilt(m_tilt);
+    m_syncState |= TiltNeedsSync;
+    update();
+
+    emit tiltChanged(m_tilt);
 }
 
 qreal QDeclarativeTangramMap::tilt() const
@@ -192,7 +162,10 @@ void QDeclarativeTangramMap::setRotation(const qreal rotation)
         return;
 
     m_rotation = rotation;
-    m_map->mapController()->setRotation(rotation);
+    m_syncState |= RotationNeedsSync;
+    update();
+
+    emit rotationChanged(m_rotation);
 }
 
 qreal QDeclarativeTangramMap::rotation() const
@@ -202,11 +175,14 @@ qreal QDeclarativeTangramMap::rotation() const
 
 void QDeclarativeTangramMap::setPixelScale(const qreal pixelScale)
 {
-    if (m_pixelScale == pixelScale)
+    if (qAbs(pixelScale - m_pixelScale) < 1e-6)
         return;
 
     m_pixelScale = pixelScale;
-    m_map->setPixelScale(m_pixelScale);
+    m_syncState |= PixelScaleNeedsSync;
+    update();
+
+    emit pixelScaleChanged(m_pixelScale);
 }
 
 qreal QDeclarativeTangramMap::pixelScale() const
@@ -214,25 +190,12 @@ qreal QDeclarativeTangramMap::pixelScale() const
     return m_pixelScale;
 }
 
-void QDeclarativeTangramMap::setContinuousRendering(const bool continuousRendering)
+void QDeclarativeTangramMap::itemchangedData(QTangramGeometry *item)
 {
-    if (m_continuousRendering != continuousRendering) {
-        m_continuousRendering = continuousRendering;
-    }
-}
-
-bool QDeclarativeTangramMap::continuousRendering() const
-{
-    return m_continuousRendering;
-}
-
-bool QDeclarativeTangramMap::event(QEvent *e)
-{
-    if (e->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {
+    if (!m_changedItems.contains(item)) {
+        m_changedItems.insert(item);
         update();
-        return true;
     }
-    return QQuickItem::event(e);
 }
 
 void QDeclarativeTangramMap::mousePressEvent(QMouseEvent *event)
@@ -270,15 +233,23 @@ void QDeclarativeTangramMap::wheelEvent(QWheelEvent *event)
     m_gestureArea->handleWheelEvent(event);
 }
 
+bool QDeclarativeTangramMap::event(QEvent *e)
+{
+    if (e->type() == TANGRAM_REQ_RENDER_EVENT_TYPE) {
+        update();
+        return true;
+    }
+    return QQuickItem::event(e);
+}
+
 void QDeclarativeTangramMap::queueSceneUpdate(const QString path, const QString value)
 {
-    m_map->tangramObject()->queueSceneUpdate(path.toStdString().c_str(),
-                              value.toStdString().c_str());
+    emit queueSceneUpdateSignal(path, value);
 }
 
 void QDeclarativeTangramMap::applySceneUpdates()
 {
-    m_map->tangramObject()->applySceneUpdates();
+    emit applySceneUpdatesSignal();
 }
 
 void QDeclarativeTangramMap::removeMapItem(QTangramGeometry *item)
@@ -287,7 +258,13 @@ void QDeclarativeTangramMap::removeMapItem(QTangramGeometry *item)
         return;
 
     item->setMap(0);
-    m_mapItems.removeOne(item);
+    if (m_changedItems.contains(item))
+        m_changedItems.remove(item);
+
+    if (m_mapItems.contains(item)) {
+        m_mapItems.removeOne(item);
+        m_removedMarkerIds.append(item->markerId());
+    }
     //emit mapItemsChanged();
 }
 
@@ -295,7 +272,7 @@ void QDeclarativeTangramMap::addMapItem(QTangramGeometry *item)
 {
     if (!item || item->map())
         return;
-    item->setMap(m_map);
+    item->setMap(this);
     m_mapItems.append(item);
     // emit mapItemsChanged();
 }
@@ -315,20 +292,13 @@ void QDeclarativeTangramMap::componentComplete()
     QQuickItem::componentComplete();
 }
 
-TangramQuickRenderer::TangramQuickRenderer(QTangramMap *map)
-    : QQuickFramebufferObject::Renderer(),
+TangramQuickRenderer::TangramQuickRenderer(QQuickItem *mapItem)
+    : QObject(mapItem),
+      QQuickFramebufferObject::Renderer(),
+      m_initialized(false),
       m_glInitialized(false),
-      m_useScenePosition(false),
-      m_continuousRendering(false),
-      m_map(map)
-{
-}
-
-TangramQuickRenderer::~TangramQuickRenderer()
-{
-}
-
-void TangramQuickRenderer::initializeGL()
+      m_platform(std::make_shared<Tangram::QtPlatform>()),
+      m_map(new Tangram::Map(m_platform))
 {
     auto f = QOpenGLContext::currentContext()->functions();
     auto context = QOpenGLContext::currentContext();
@@ -336,20 +306,25 @@ void TangramQuickRenderer::initializeGL()
 
     qDebug() << Q_FUNC_INFO << "Version:" << f->glGetString(GL_VERSION);
 
-    m_map->tangramObject()->setupGL();
-    m_map->setScene(m_sceneUrl, m_useScenePosition);
+    m_map->setupGL();
+}
 
-    m_glInitialized = true;
+TangramQuickRenderer::~TangramQuickRenderer()
+{
+}
+
+void TangramQuickRenderer::initMap()
+{
 }
 
 void TangramQuickRenderer::render()
 {
     QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
-    m_map->tangramObject()->update((float)m_elapsedTimer.elapsed() / 1000.f);
-    m_map->tangramObject()->render();
+    m_map->update((float)m_elapsedTimer.elapsed() / 1000.f);
+    m_map->render();
     m_elapsedTimer.restart();
 
-    if (m_continuousRendering)
+    if (m_platform->isContinuousRendering())
         update();
 
     f->glActiveTexture(GL_TEXTURE0);
@@ -357,26 +332,200 @@ void TangramQuickRenderer::render()
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
 {
-    QDeclarativeTangramMap *quickMap = static_cast<QDeclarativeTangramMap*>(item);
-    if (!quickMap)
-        return;
+    QDeclarativeTangramMap *map = static_cast<QDeclarativeTangramMap*>(item);
 
-    m_useScenePosition = !(quickMap->m_center.isValid() && quickMap->m_zoomLevel != -1);
-    m_continuousRendering = quickMap->m_continuousRendering;
+    if (!m_initialized) {
+        m_platform->setDownloader(map->m_downloader);
+        m_platform->setItem(map);
+        m_markerManager = new QTangramMarkerManager(m_map, this);
+        connect(map, &QDeclarativeTangramMap::queueSceneUpdateSignal,
+                this, &TangramQuickRenderer::queueSceneUpdate);
+        connect(map, &QDeclarativeTangramMap::applySceneUpdatesSignal,
+                this, &TangramQuickRenderer::applySceneUpdates);
+        connect(this, &TangramQuickRenderer::sceneChanged,
+                map, &QDeclarativeTangramMap::sceneChanged);
+        connect(m_markerManager, &QTangramMarkerManager::startDrag,
+                map->m_gestureArea, &QTangramGestureArea::startDrag);
 
-    m_sceneUrl = quickMap->sceneConfiguration();
+        m_initialized = true;
+    }
+
+    auto syncState = map->m_syncState;
+
+    if (syncState & QDeclarativeTangramMap::ZoomNeedsSync) {
+        m_map->setZoom(map->m_zoomLevel);
+    }
+
+    if (syncState & QDeclarativeTangramMap::CenterNeedsSync) {
+        m_map->setPosition(map->m_center.longitude(), map->m_center.latitude());
+    }
+
+    if (syncState & QDeclarativeTangramMap::SceneConfigurationNeedsSync) {
+
+        QUrl scene = map->m_sceneUrl;
+        QString sceneFile = scene.isLocalFile() ? scene.toLocalFile() : scene.url();
+        m_map->loadSceneAsync(sceneFile.toStdString().c_str(),
+                              true, std::bind(&TangramQuickRenderer::sceneChanged, this));
+    }
+
+    if (syncState & QDeclarativeTangramMap::HeadingNeedsSync) {
+
+    }
+
+    if (syncState & QDeclarativeTangramMap::TiltNeedsSync) {
+        m_map->setTilt(map->m_tilt);
+    }
+
+    if (syncState & QDeclarativeTangramMap::RotationNeedsSync) {
+        m_map->setRotation(map->m_rotation);
+    }
+
+    if (syncState & QDeclarativeTangramMap::PixelScaleNeedsSync) {
+        m_map->setPixelScale(map->m_pixelScale);
+    }
+
+    map->m_syncState = QDeclarativeTangramMap::NothingNeedsSync;
+
+    for (auto &marker : map->m_changedItems)
+        m_markerManager->sync(marker);
+    map->m_changedItems.clear();
+    m_markerManager->syncDrag();
+
+    for (auto &markerId : map->m_removedMarkerIds)
+        m_markerManager->remove(markerId);
+
+
+    int gestureState = map->m_gestureArea->m_syncState;
+    map->m_gestureArea->m_syncState = QTangramGestureArea::NothingNeedsSync;
+    auto gestureArea = map->m_gestureArea;
+
+    if (gestureState & QTangramGestureArea::PanNeedsSync) {
+        m_map->handlePanGesture(gestureArea->m_touchPointsCentroidLast.x(),
+                                gestureArea->m_touchPointsCentroidLast.y(),
+                                gestureArea->m_touchPointsCentroid.x(),
+                                gestureArea->m_touchPointsCentroid.y());
+        m_syncState |= CenterNeedsSync;
+    }
+
+    if (gestureState & QTangramGestureArea::FlingNeedsSync) {
+        m_map->handleFlingGesture(gestureArea->m_touchPointsCentroidLast.x(),
+                                  gestureArea->m_touchPointsCentroidLast.y(),
+                                  gestureArea->m_flick.m_vector.x(),
+                                  gestureArea->m_flick.m_vector.y());
+    }
+
+    if (gestureState & QTangramGestureArea::PinchNeedsSync) {
+        m_map->handlePinchGesture(gestureArea->m_touchPointsCentroid.x(),
+                                  gestureArea->m_touchPointsCentroid.y(),
+                                  gestureArea->m_pinch.m_scale, 0.f);
+        m_syncState |= ZoomNeedsSync;
+    }
+
+    if (gestureState & QTangramGestureArea::RotateNeedsSync) {
+        m_map->handleRotateGesture(gestureArea->m_touchPointsCentroid.x(),
+                                   gestureArea->m_touchPointsCentroid.y(),
+                                   gestureArea->m_pinch.m_rotation.m_angle);
+        m_syncState |= RotationNeedsSync;
+    }
+
+    if (gestureState & QTangramGestureArea::ShoveNeedsSync) {
+        m_map->handleShoveGesture(gestureArea->m_pinch.m_tilt.m_verticalDisplacement);
+        m_syncState |= TiltNeedsSync;
+    }
+
+    if (gestureState & QTangramGestureArea::TryClickNeedsSync) {
+        m_markerManager->tryToClick(gestureArea->m_touchPointsCentroid.x(),
+                                    gestureArea->m_touchPointsCentroid.y());
+    }
+
+    if (gestureState & QTangramGestureArea::TryDragNeedsSync) {
+        m_markerManager->tryToDrag(gestureArea->m_touchPointsCentroid.x(),
+                                   gestureArea->m_touchPointsCentroid.y());
+    }
+
+    if (gestureState & QTangramGestureArea::DragNeedsSync) {
+        m_markerManager->drag(gestureArea->m_touchPointsCentroid.x(),
+                              gestureArea->m_touchPointsCentroid.y());
+    }
+
+    if (gestureState & QTangramGestureArea::EndDragNeedsSync) {
+        m_markerManager->endDrag();
+    }
+
+    if (gestureState & QTangramGestureArea::StopPointNeedsSync) {
+        m_map->handlePanGesture(0, 0, 0, 0);
+    }
+
+    syncTo(map);
+
+}
+
+void TangramQuickRenderer::syncTo(QDeclarativeTangramMap *map)
+{
+    int syncState = popSyncState();
+
+    if (syncState & TangramQuickRenderer::ZoomNeedsSync) {
+        map->m_zoomLevel = m_map->getZoom();
+        emit map->zoomLevelChanged(map->m_zoomLevel);
+    }
+
+    if (syncState & TangramQuickRenderer::CenterNeedsSync) {
+        double lon, lat;
+        m_map->getPosition(lon, lat);
+        map->m_center.setLongitude(lon);
+        map->m_center.setLatitude(lat);
+        emit map->centerChanged(map->m_center);
+
+    }
+    if (syncState & TangramQuickRenderer::TiltNeedsSync) {
+        map->m_tilt = m_map->getTilt();
+        map->tiltChanged(map->m_tilt);
+    }
+
+    if (syncState & TangramQuickRenderer::RotationNeedsSync) {
+        map->m_rotation = m_map->getRotation();
+        map->rotationChanged(map->m_rotation);
+    }
+}
+
+int TangramQuickRenderer::popSyncState()
+{
+    int state = m_syncState;
+    m_syncState = NothingNeedsSync;
+    return state;
+}
+
+QGeoCoordinate TangramQuickRenderer::itemPositionToCoordinate(const QPointF &pos) const
+{
+    double lat, lon;
+    m_map->screenPositionToLngLat(pos.x(), pos.y(), &lon, &lat);
+
+    return QGeoCoordinate(lat, lon);
+}
+
+QPointF TangramQuickRenderer::coordinateToItemPosition(const QGeoCoordinate &coordinate) const
+{
+    double x, y;
+    m_map->lngLatToScreenPosition(coordinate.longitude(), coordinate.latitude(), &x, &y);
+
+    return QPointF(x, y);
 }
 
 QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QSize &size)
 {
-    if (!m_glInitialized)
-        initializeGL();
-    {
-        QMutexLocker locker(&m_map->m_mutex);
-        m_map->resize(size.width(), size.height());
-    }
+    m_map->resize(size.width(), size.height());
 
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     return new QOpenGLFramebufferObject(size, format);
+}
+
+void TangramQuickRenderer::queueSceneUpdate(const QString path, const QString value)
+{
+    m_map->queueSceneUpdate(path.toStdString().c_str(), value.toStdString().c_str());
+}
+
+void TangramQuickRenderer::applySceneUpdates()
+{
+    m_map->applySceneUpdates();
 }

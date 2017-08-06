@@ -5,17 +5,27 @@
 #include <QQmlParserStatus>
 #include <QElapsedTimer>
 #include <QQuickItem>
+#include <QSet>
 #include <QMutex>
 #include <data/clientGeoJsonSource.h>
 #include <QGeoCoordinate>
+#include <memory>
+#include "map.h"
 
 #include <QScopedPointer>
 #include <QOpenGLShaderProgram>
 
+namespace Tangram {
+class Map;
+class QtPlatform;
+}
+
 class TangramQuickRenderer;
-class QTangramMap;
+class QTangramMarkerManager;
 class QTangramGestureArea;
 class QTangramGeometry;
+class QTangramPoint;
+class ContentDownloader;
 
 class QDeclarativeTangramMap : public QQuickFramebufferObject
 {
@@ -50,9 +60,6 @@ public:
     void setTilt(const qreal tilt);
     qreal tilt() const;
 
-    void setContinuousRendering(const bool continuousRendering);
-    bool continuousRendering() const;
-
     void setRotation(const qreal rotation);
     qreal rotation() const;
 
@@ -64,23 +71,26 @@ public:
 
     Renderer *createRenderer() const;
 
-    // TODO: The documents uses a comma separated list on path. Maybe change
-    // the to QMap<QString, QString>. But how will that work in QML?
     Q_INVOKABLE void queueSceneUpdate(const QString path, const QString value);
     Q_INVOKABLE void applySceneUpdates();
 
+    void itemchangedData(QTangramGeometry *item);
+
 Q_SIGNALS:
-    void sceneConfigurationChanged();
+    void zoomLevelChanged(qreal zoomLevel);
     void centerChanged(const QGeoCoordinate &center);
+    void sceneConfigurationChanged();
     void headingChanged();
-    void zoomLevelChanged(qreal);
-    void tiltChanged(qreal);
+    void tiltChanged(qreal tilt);
     void rotationChanged(qreal rotation);
     void pixelScaleChanged(qreal pixelScale);
 
-protected:
-    bool event(QEvent *ev);
+    void sceneChanged();
+    void queueSceneUpdateSignal(const QString path, const QString value);
+    void applySceneUpdatesSignal();
+    void mapReady();
 
+protected:
     void mousePressEvent(QMouseEvent *event) Q_DECL_OVERRIDE ;
     void mouseMoveEvent(QMouseEvent *event) Q_DECL_OVERRIDE ;
     void mouseReleaseEvent(QMouseEvent *event) Q_DECL_OVERRIDE ;
@@ -88,6 +98,7 @@ protected:
     void touchUngrabEvent() Q_DECL_OVERRIDE;
     void touchEvent(QTouchEvent *event) Q_DECL_OVERRIDE ;
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE ;
+    bool event(QEvent *ev) Q_DECL_OVERRIDE;
 
     void componentComplete() Q_DECL_OVERRIDE;
 
@@ -96,51 +107,94 @@ protected:
 private Q_SLOTS:
     void updateScene();
     void populateMap();
-    void mapZoomLevelChanged(qreal zoom);
-    void mapTiltChanged(qreal tilt);
-    void mapRotationChanged(qreal rotation);
-    void mapPixelScaleChanged(qreal pixelScale);
 
 private:
-    QUrl m_sceneUrl;
-    QGeoCoordinate m_center;
-    qreal m_heading;
     qreal m_zoomLevel;
+    QGeoCoordinate m_center;
+    QUrl m_sceneUrl;
+    qreal m_heading;
     qreal m_tilt;
     qreal m_rotation;
     qreal m_pixelScale;
-    bool m_continuousRendering;
 
-    QTangramMap* m_map;
+    enum SyncState {
+        NothingNeedsSync = 0,
+        ZoomNeedsSync = 1 << 0,
+        CenterNeedsSync = 1 << 1,
+        SceneConfigurationNeedsSync = 1 << 2,
+        HeadingNeedsSync = 1 << 3,
+        TiltNeedsSync = 1 << 4,
+        RotationNeedsSync = 1 << 5,
+        PixelScaleNeedsSync = 1 << 6,
+    };
+
+    int m_syncState = NothingNeedsSync;
+
+    QSet<QTangramGeometry *> m_changedItems;
+    QVector<int> m_removedMarkerIds;
+
     QTangramGestureArea* m_gestureArea;
-
     QVector<QTangramGeometry *> m_mapItems;
+
+    ContentDownloader *m_downloader;
 
     friend class TangramQuickRenderer;
     friend class QTangramGestureArea;
     Q_DISABLE_COPY(QDeclarativeTangramMap)
 };
 
-class TangramQuickRenderer : public QQuickFramebufferObject::Renderer
+class TangramQuickRenderer : public QObject, public QQuickFramebufferObject::Renderer
 {
+    Q_OBJECT
 public:
-    TangramQuickRenderer(QTangramMap *map);
+    TangramQuickRenderer(QQuickItem *mapItem = 0);
     virtual ~TangramQuickRenderer();
 
     void render();
     void synchronize(QQuickFramebufferObject *item);
     QOpenGLFramebufferObject *createFramebufferObject(const QSize &size);
 
+    void setContinuousRendering(bool contiuous);
+    bool continuousRendering();
+
+    QGeoCoordinate itemPositionToCoordinate(const QPointF &pos) const;
+    QPointF coordinateToItemPosition(const QGeoCoordinate &coordinate) const;
+
+Q_SIGNALS:
+    void sceneChanged();
+
+public slots:
+    void queueSceneUpdate(const QString path, const QString value);
+    void applySceneUpdates();
+
+protected:
+
 private:
-    void initializeGL();
+    void initMap();
+    void syncTo(QDeclarativeTangramMap *map);
+    int popSyncState();
 
     QUrl m_sceneUrl;
     QElapsedTimer m_elapsedTimer;
+    bool m_initialized;
     bool m_glInitialized;
     bool m_useScenePosition;
-    bool m_continuousRendering;
 
-    QTangramMap* m_map;
+    std::shared_ptr<Tangram::QtPlatform> m_platform;
+    Tangram::Map* m_map;
+    QTangramMarkerManager* m_markerManager;
+
+    enum SyncState {
+        NothingNeedsSync = 0x0000,
+        ZoomNeedsSync = 0x0001,
+        CenterNeedsSync = 0x0002,
+        TiltNeedsSync = 0x0004,
+        RotationNeedsSync = 0x0008
+    };
+
+    int m_syncState = NothingNeedsSync;
+
+    friend class QtPlatform;
 };
 
 QML_DECLARE_TYPE(QDeclarativeTangramMap)
