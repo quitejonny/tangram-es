@@ -25,9 +25,10 @@ namespace Tangram {
 
 static std::atomic<int32_t> s_serial;
 
+Scene::Scene() : id(s_serial++) {}
+
 Scene::Scene(std::shared_ptr<const Platform> _platform, const std::string& _path)
     : id(s_serial++),
-      m_path(_path),
       m_fontContext(std::make_shared<FontContext>(_platform)),
       m_featureSelection(std::make_unique<FeatureSelection>()) {
 
@@ -58,14 +59,28 @@ Scene::Scene(std::shared_ptr<const Platform> _platform, const std::string& _path
     m_mapProjection.reset(new MercatorProjection());
 }
 
-Scene::Scene(const Scene& _other)
+Scene::Scene(std::shared_ptr<const Platform> _platform, const std::string& _yaml, const std::string& _resourceRoot)
     : id(s_serial++),
+      m_fontContext(std::make_shared<FontContext>(_platform)),
       m_featureSelection(std::make_unique<FeatureSelection>()) {
+
+    m_resourceRoot = _resourceRoot;
+    m_yaml = _yaml;
+
+    m_fontContext->setSceneResourceRoot(m_resourceRoot);
+
+    m_mapProjection.reset(new MercatorProjection());
+}
+
+void Scene::copyConfig(const Scene& _other) {
+
+    m_featureSelection.reset(new FeatureSelection());
 
     m_config = _other.m_config;
     m_fontContext = _other.m_fontContext;
 
     m_path = _other.m_path;
+    m_yaml = _other.m_yaml;
     m_resourceRoot = _other.m_resourceRoot;
 
     m_globalRefs = _other.m_globalRefs;
@@ -174,7 +189,8 @@ void Scene::createSceneAsset(const std::shared_ptr<Platform>& platform, const Ur
             // Data to be fetched later (and zipHandle created) in network callback
             asset = std::make_shared<ZippedAsset>(resolvedStr);
 
-        } else if (relativeUrl.isAbsolute() || base.isEmpty()) {
+        } else if (relativeUrl.isAbsolute() || base.isEmpty() || !m_assets[baseStr]->zipHandle()) {
+            // load zip asset from File if its absolute or no base or base is not a zip asset
             asset = std::make_shared<ZippedAsset>(resolvedStr, nullptr, platform->bytesFromFile(resolvedStr.c_str()));
         } else {
             auto parentAsset = static_cast<ZippedAsset*>(m_assets[baseStr].get());

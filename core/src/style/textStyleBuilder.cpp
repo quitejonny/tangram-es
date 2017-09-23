@@ -251,6 +251,9 @@ bool TextStyleBuilder::handleBoundaryLabel(const Feature& _feat, const DrawRule&
 }
 
 bool TextStyleBuilder::addFeature(const Feature& _feat, const DrawRule& _rule) {
+
+    if (!checkRule(_rule)) { return false; }
+
     TextStyle::Parameters params = applyRule(_rule, _feat.props, false);
 
     Label::Type labelType;
@@ -548,12 +551,25 @@ void TextStyleBuilder::addLineTextLabels(const Feature& _feat, const TextStyle::
     }
 }
 
+bool TextStyleBuilder::checkRule(const DrawRule& _rule) const {
+    if (_rule.hasParameterSet(StyleParamKey::text_font_family) ||
+        _rule.hasParameterSet(StyleParamKey::text_font_fill) ||
+        _rule.hasParameterSet(StyleParamKey::text_font_size) ||
+        _rule.hasParameterSet(StyleParamKey::text_font_stroke_color) ||
+        _rule.hasParameterSet(StyleParamKey::text_font_stroke_width) ||
+        _rule.hasParameterSet(StyleParamKey::text_font_style) ||
+        _rule.hasParameterSet(StyleParamKey::text_font_weight)) {
+        return true;
+    }
+    return false;
+}
+
 TextStyle::Parameters TextStyleBuilder::applyRule(const DrawRule& _rule,
                                                   const Properties& _props,
                                                   bool _iconText) const {
 
     const static std::string defaultWeight("400");
-    const static std::string defaultStyle("normal");
+    const static std::string defaultStyle("regular");
     const static std::string defaultFamily("default");
 
     TextStyle::Parameters p;
@@ -742,17 +758,6 @@ bool isComplexShapingScript(const icu::UnicodeString& _text) {
     for (UChar c = iterator.first(); c != CharacterIterator::DONE; c = iterator.next()) {
         if (c >= u'\u0600' && c <= u'\u18AF') {
             if ((c <= u'\u06FF') ||                   // Arabic:     "\u0600-\u06FF"
-                (c >= u'\u0900' && c <= u'\u097F') || // Devanagari: "\u0900-\u097F"
-                (c >= u'\u0980' && c <= u'\u09FF') || // Bengali:    "\u0980-\u09FF"
-                (c >= u'\u0A00' && c <= u'\u0A7F') || // Gurmukhi:   "\u0A00-\u0A7F"
-                (c >= u'\u0A80' && c <= u'\u0AFF') || // Gujarati:   "\u0A80-\u0AFF"
-                (c >= u'\u0B00' && c <= u'\u0B7f') || // Oriya:      "\u0B00-\u0B7F"
-                (c >= u'\u0B80' && c <= u'\u0BFF') || // Tamil:      "\u0B80-\u0BFF"
-                (c >= u'\u0C00' && c <= u'\u0C7F') || // Telugu:     "\u0C00-\u0C7F"
-                (c >= u'\u0E80' && c <= u'\u0EFF') || // Lao:        "\u0E80-\u0EFF"
-                (c >= u'\u0F00' && c <= u'\u0FFF') || // Tibetan:    "\u0F00-\u0FFF"
-                (c >= u'\u1000' && c <= u'\u109F') || // Burmese:    "\u1000-\u109F"
-                (c >= u'\u1780' && c <= u'\u17FF') || // Khmer:      "\u1780-\u17FF"
                 (c >= u'\u1800' && c <= u'\u18AF')) { // Mongolian:  "\u1800-\u18AF"
                 return true;
             }
