@@ -9,6 +9,7 @@
 #include <QDebug>
 #include "qtangramgesturearea.h"
 #include "qtangrammarkermanager.h"
+#include <QQuickWindow>
 
 
 TangramQuickRenderer::TangramQuickRenderer(QQuickItem *mapItem)
@@ -19,6 +20,7 @@ TangramQuickRenderer::TangramQuickRenderer(QQuickItem *mapItem)
       m_platform(std::make_shared<Tangram::QtPlatform>()),
       m_map(new Tangram::Map(m_platform))
 {
+
     auto f = QOpenGLContext::currentContext()->functions();
     auto context = QOpenGLContext::currentContext();
     Tangram::setQtGlFunctions(context);
@@ -38,15 +40,15 @@ void TangramQuickRenderer::initMap()
 
 void TangramQuickRenderer::render()
 {
-    QOpenGLFunctions *f = QOpenGLContext::currentContext()->functions();
     m_map->update((float)m_elapsedTimer.elapsed() / 1000.f);
+
     m_map->render();
     m_elapsedTimer.restart();
 
     if (m_platform->isContinuousRendering())
         update();
 
-    f->glActiveTexture(GL_TEXTURE0);
+    m_item->window()->resetOpenGLState();
 }
 
 void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
@@ -54,6 +56,7 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
     QDeclarativeTangramMap *map = static_cast<QDeclarativeTangramMap*>(item);
 
     if (!m_initialized) {
+        m_item =  item;
         m_platform->setDownloader(map->m_downloader);
         m_platform->setItem(map);
         m_markerManager = new QTangramMarkerManager(m_map, this);
@@ -178,6 +181,7 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
     }
 
     syncTo(map);
+    map->m_isUpdateRequested = false;
 
 }
 
@@ -237,6 +241,7 @@ QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QS
     m_map->resize(size.width(), size.height());
 
     QOpenGLFramebufferObjectFormat format;
+    format.setSamples(4);
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     return new QOpenGLFramebufferObject(size, format);
 }

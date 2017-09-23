@@ -9,8 +9,7 @@ GLenum GL::getError() {
 }
 
 const GLubyte* GL::getString(GLenum name) {
-    auto result = __qt_gl_funcs->glGetString(name);
-    return result;
+    return __qt_gl_funcs->glGetString(name);
 }
 
 void GL::clear(GLbitfield mask) {
@@ -83,19 +82,17 @@ void GL::deleteShader(GLuint shader) {
     __qt_gl_funcs->glDeleteShader(shader);
 }
 GLuint GL::createShader(GLenum type) {
-    auto result = __qt_gl_funcs->glCreateShader(type);
-    return result;
+    return __qt_gl_funcs->glCreateShader(type);
 }
 GLuint GL::createProgram() {
-    auto result = __qt_gl_funcs->glCreateProgram();
-    return result;
+    return __qt_gl_funcs->glCreateProgram();
 }
 
 void GL::compileShader(GLuint shader) {
     __qt_gl_funcs->glCompileShader(shader);
 }
 void GL::attachShader(GLuint program, GLuint shader) {
-    __qt_gl_funcs->glAttachShader(program,shader);
+    __qt_gl_funcs->glAttachShader(program, shader);
 }
 void GL::linkProgram(GLuint program) {
     __qt_gl_funcs->glLinkProgram(program);
@@ -118,10 +115,10 @@ GLint GL::getAttribLocation(GLuint program, const GLchar *name) {
     return __qt_gl_funcs->glGetAttribLocation(program, name);
 }
 void GL::getProgramiv(GLuint program, GLenum pname, GLint *params) {
-    __qt_gl_funcs->glGetProgramiv(program,pname,params);
+    __qt_gl_funcs->glGetProgramiv(program, pname, params);
 }
 void GL::getShaderiv(GLuint shader, GLenum pname, GLint *params) {
-    __qt_gl_funcs->glGetShaderiv(shader,pname, params);
+    __qt_gl_funcs->glGetShaderiv(shader, pname, params);
 }
 
 // Buffers
@@ -147,7 +144,7 @@ void GL::readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
 
 // Texture
 void GL::bindTexture(GLenum target, GLuint texture ) {
-    __qt_gl_funcs->glBindTexture(target, texture );
+    __qt_gl_funcs->glBindTexture(target, texture);
 }
 void GL::activeTexture(GLenum texture) {
     __qt_gl_funcs->glActiveTexture(texture);
@@ -163,11 +160,13 @@ void GL::texParameteri(GLenum target, GLenum pname, GLint param ) {
 }
 void GL::texImage2D(GLenum target, GLint level, GLint internalFormat, GLsizei width, GLsizei height,
                     GLint border, GLenum format, GLenum type, const GLvoid *pixels) {
-    __qt_gl_funcs->glTexImage2D(target, level, internalFormat, width, height, border, format, type, pixels); }
+    __qt_gl_funcs->glTexImage2D(target, level, internalFormat, width, height, border, format, type, pixels);
+}
 
 void GL::texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
                        GLenum format, GLenum type, const GLvoid *pixels) {
-    __qt_gl_funcs->glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels); }
+    __qt_gl_funcs->glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+}
 
 void GL::generateMipmap(GLenum target) {
     __qt_gl_funcs->glGenerateMipmap(target);
@@ -254,12 +253,10 @@ void GL::uniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, co
 
 // mapbuffer
 void* GL::mapBuffer(GLenum target, GLenum access) {
-    auto result = __qt_gl_extra_funcs->mapBuffer(target, access);
-    return result;
+    return __qt_gl_extra_funcs->mapBuffer(target, access);
 }
 GLboolean GL::unmapBuffer(GLenum target) {
-    auto result = __qt_gl_extra_funcs->unmapBuffer(target);
-    return result;
+    return __qt_gl_extra_funcs->unmapBuffer(target);
 }
 
 void GL::finish(void) {
@@ -318,8 +315,7 @@ void GL::deleteRenderbuffers(GLsizei n, const GLuint *renderbuffers) {
 }
 
 GLenum GL::checkFramebufferStatus(GLenum target) {
-    GLenum status = __qt_gl_funcs->glCheckFramebufferStatus(target);
-    return status;
+    return __qt_gl_funcs->glCheckFramebufferStatus(target);
 }
 
 }

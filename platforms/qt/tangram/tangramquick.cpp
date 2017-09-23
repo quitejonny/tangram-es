@@ -19,6 +19,7 @@ QDeclarativeTangramMap::QDeclarativeTangramMap(QQuickItem *parent)
       m_rotation(0),
       m_pixelScale(1),
       m_isMapReady(false),
+      m_isUpdateRequested(false),
       m_gestureArea(new QTangramGestureArea(this)),
       m_downloader(new ContentDownloader(this))
 {
@@ -53,14 +54,13 @@ void QDeclarativeTangramMap::updateScene()
         item->setMap(this);
     }
 
+    m_isMapReady = true;
     if (m_center.isValid())
         addSyncState(CenterNeedsSync);
     if (m_zoomLevel != -1)
         addSyncState(ZoomNeedsSync);
     addSyncState(PixelScaleNeedsSync | RotationNeedsSync | TiltNeedsSync);
 
-    m_isMapReady = true;
-    update();
 }
 
 QQuickFramebufferObject::Renderer* QDeclarativeTangramMap::createRenderer() const
@@ -185,8 +185,7 @@ void QDeclarativeTangramMap::itemchangedData(QTangramGeometry *item)
 {
     if (!m_changedItems.contains(item)) {
         m_changedItems.insert(item);
-        if (m_isMapReady)
-            update();
+        update();
     }
 }
 
@@ -231,7 +230,7 @@ bool QDeclarativeTangramMap::event(QEvent *e)
         update();
         return true;
     }
-    return QQuickItem::event(e);
+    return QQuickFramebufferObject::event(e);
 }
 
 void QDeclarativeTangramMap::queueSceneUpdate(const QString path, const QString value)
@@ -269,10 +268,16 @@ void QDeclarativeTangramMap::addMapItem(QTangramGeometry *item)
 
 void QDeclarativeTangramMap::addSyncState(int syncState)
 {
-    int oldState = m_syncState;
     m_syncState |= syncState;
-    if (m_isMapReady && !oldState)
-        update();
+    update();
+}
+
+void QDeclarativeTangramMap::update()
+{
+    if (!m_isUpdateRequested) {
+        QQuickFramebufferObject::update();
+        m_isUpdateRequested = true;
+    }
 }
 
 void QDeclarativeTangramMap::populateMap()
@@ -283,9 +288,4 @@ void QDeclarativeTangramMap::populateMap()
         if (mapItem)
             addMapItem(mapItem);
     }
-}
-
-void QDeclarativeTangramMap::componentComplete()
-{
-    QQuickItem::componentComplete();
 }

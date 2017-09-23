@@ -59,6 +59,7 @@ public:
     Q_INVOKABLE void applySceneUpdates();
 
     void itemchangedData(QTangramGeometry *item);
+    void update();
 
 Q_SIGNALS:
     void zoomLevelChanged(qreal zoomLevel);
@@ -84,8 +85,6 @@ protected:
     void wheelEvent(QWheelEvent *event) Q_DECL_OVERRIDE ;
     bool event(QEvent *ev) Q_DECL_OVERRIDE;
 
-    void componentComplete() Q_DECL_OVERRIDE;
-
     QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
@@ -102,7 +101,8 @@ private:
     qreal m_tilt;
     qreal m_rotation;
     qreal m_pixelScale;
-    qreal m_isMapReady;
+    bool m_isMapReady;
+    bool m_isUpdateRequested;
 
     enum SyncState {
         NothingNeedsSync = 0,

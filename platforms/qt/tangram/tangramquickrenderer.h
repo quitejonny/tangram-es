@@ -56,6 +56,7 @@ private:
     std::shared_ptr<Tangram::QtPlatform> m_platform;
     Tangram::Map* m_map;
     QTangramMarkerManager* m_markerManager;
+    QQuickFramebufferObject* m_item;
 
     enum SyncState {
         NothingNeedsSync = 0x0000,

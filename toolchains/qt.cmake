@@ -1,6 +1,3 @@
-# set for test in other cmake files
-set(PLATFORM_QT ON)
-
 if(EXISTS "/etc/debian_version")
       include(${CMAKE_ROOT}/Modules/MultiArchCross.cmake OPTIONAL
 RESULT_VARIABLE _INCLUDED_MULTIARCH_TOOLCHAIN_FILE)
@@ -35,8 +32,7 @@ endif()
 
 check_unsupported_compiler_version()
 
-# compile definitions (adds -DPLATFORM_QT)
-set(CORE_COMPILE_DEFS PLATFORM_QT)
+add_definitions(-DTANGRAM_QT)
 
 # load core library
 add_subdirectory(${PROJECT_SOURCE_DIR}/core)
@@ -86,7 +82,7 @@ add_custom_target(${PLUGIN_NAME}-qmldir ALL
   COMMAND cp ${PROJECT_SOURCE_DIR}/platforms/qt/tangram/qmldir ${PROJECT_BINARY_DIR}/bin/com/mapzen/tangram)
 
 
-if(APPLICATION)
+if(TANGRAM_APPLICATION)
 
   set(EXECUTABLE_NAME "tangram")
 
