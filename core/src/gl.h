@@ -6,7 +6,7 @@ typedef long GLintptr;
 #elif defined(TANGRAM_TIZEN)
 typedef signed long int  GLintptr;
 typedef signed long int  GLsizeiptr;
-#elif defined(PLATFORM_QT)
+#elif defined(TANGRAM_QT)
 #include <KHR/khrplatform.h>
 typedef khronos_ssize_t GLsizeiptr;
 typedef khronos_intptr_t GLintptr;

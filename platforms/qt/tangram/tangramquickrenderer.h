@@ -37,8 +37,7 @@ Q_SIGNALS:
     void sceneChanged();
 
 public slots:
-    void queueSceneUpdate(const QString path, const QString value);
-    void applySceneUpdates();
+    void updateScene(const QString path, const QString value);
 
 protected:
 

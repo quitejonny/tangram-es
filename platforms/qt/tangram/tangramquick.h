@@ -55,8 +55,7 @@ public:
 
     Renderer *createRenderer() const;
 
-    Q_INVOKABLE void queueSceneUpdate(const QString path, const QString value);
-    Q_INVOKABLE void applySceneUpdates();
+    Q_INVOKABLE void updateScene(const QString path, const QString value);
 
     void itemchangedData(QTangramGeometry *item);
     void update();
@@ -71,7 +70,7 @@ Q_SIGNALS:
     void pixelScaleChanged(qreal pixelScale);
 
     void sceneChanged();
-    void queueSceneUpdateSignal(const QString path, const QString value);
+    void updateSceneSignal(const QString path, const QString value);
     void applySceneUpdatesSignal();
     void mapReady();
 
@@ -88,7 +87,7 @@ protected:
     QSGNode *updatePaintNode(QSGNode *, UpdatePaintNodeData *) Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
-    void updateScene();
+    void updateDeclarativeScene();
     void populateMap();
 
 private:

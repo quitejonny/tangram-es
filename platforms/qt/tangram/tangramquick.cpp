@@ -24,7 +24,7 @@ QDeclarativeTangramMap::QDeclarativeTangramMap(QQuickItem *parent)
       m_downloader(new ContentDownloader(this))
 {
     setAcceptedMouseButtons(Qt::AllButtons);
-    connect(this, &QDeclarativeTangramMap::sceneChanged, this, &QDeclarativeTangramMap::updateScene);
+    connect(this, &QDeclarativeTangramMap::sceneChanged, this, &QDeclarativeTangramMap::updateDeclarativeScene);
 }
 
 QDeclarativeTangramMap::~QDeclarativeTangramMap()
@@ -45,7 +45,7 @@ QSGNode *QDeclarativeTangramMap::updatePaintNode(QSGNode *node, UpdatePaintNodeD
     return n;
 }
 
-void QDeclarativeTangramMap::updateScene()
+void QDeclarativeTangramMap::updateDeclarativeScene()
 {
     populateMap();
 
@@ -233,14 +233,9 @@ bool QDeclarativeTangramMap::event(QEvent *e)
     return QQuickFramebufferObject::event(e);
 }
 
-void QDeclarativeTangramMap::queueSceneUpdate(const QString path, const QString value)
+void QDeclarativeTangramMap::updateScene(const QString path, const QString value)
 {
-    emit queueSceneUpdateSignal(path, value);
-}
-
-void QDeclarativeTangramMap::applySceneUpdates()
-{
-    emit applySceneUpdatesSignal();
+    emit updateSceneSignal(path, value);
 }
 
 void QDeclarativeTangramMap::removeMapItem(QTangramGeometry *item)

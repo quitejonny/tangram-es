@@ -60,10 +60,8 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
         m_platform->setDownloader(map->m_downloader);
         m_platform->setItem(map);
         m_markerManager = new QTangramMarkerManager(m_map, this);
-        connect(map, &QDeclarativeTangramMap::queueSceneUpdateSignal,
-                this, &TangramQuickRenderer::queueSceneUpdate);
-        connect(map, &QDeclarativeTangramMap::applySceneUpdatesSignal,
-                this, &TangramQuickRenderer::applySceneUpdates);
+        connect(map, &QDeclarativeTangramMap::updateSceneSignal,
+                this, &TangramQuickRenderer::updateScene);
         connect(this, &TangramQuickRenderer::sceneChanged,
                 map, &QDeclarativeTangramMap::sceneChanged);
         connect(m_markerManager, &QTangramMarkerManager::startDrag,
@@ -86,8 +84,10 @@ void TangramQuickRenderer::synchronize(QQuickFramebufferObject *item)
 
         QUrl scene = map->m_sceneUrl;
         QString sceneFile = scene.isLocalFile() ? scene.toLocalFile() : scene.url();
-        m_map->loadSceneAsync(sceneFile.toStdString().c_str(),
-                              true, std::bind(&TangramQuickRenderer::sceneChanged, this));
+        m_map->loadSceneAsync(sceneFile.toStdString(), true);
+        m_map->setSceneReadyListener([&](Tangram::SceneID id, const Tangram::SceneError* error) {
+            emit this->sceneChanged();
+        });
     }
 
     if (syncState & QDeclarativeTangramMap::HeadingNeedsSync) {
@@ -246,12 +246,9 @@ QOpenGLFramebufferObject* TangramQuickRenderer::createFramebufferObject(const QS
     return new QOpenGLFramebufferObject(size, format);
 }
 
-void TangramQuickRenderer::queueSceneUpdate(const QString path, const QString value)
+void TangramQuickRenderer::updateScene(const QString path, const QString value)
 {
-    m_map->queueSceneUpdate(path.toStdString().c_str(), value.toStdString().c_str());
-}
-
-void TangramQuickRenderer::applySceneUpdates()
-{
-    m_map->applySceneUpdates();
+    std::vector<Tangram::SceneUpdate> updates;
+    updates.push_back({path.toStdString(), value.toStdString()});
+    m_map->updateSceneAsync(updates);
 }
